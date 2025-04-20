@@ -14,34 +14,31 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
-    // try {
-    //   const response = await fetch(
-    //     "http://192.168.18.29:8080/api/users/login",
-    //     {
-    //       method: "POST",
-    //       headers: {
-    //         "Content-Type": "application/json",
-    //       },
-    //       body: JSON.stringify({ email, password }),
-    //     }
-    //   );
+    try {
+      const response = await fetch(
+        "http://192.168.18.29:8080/api/users/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
-    //   const data = await response.json(); // Expecting JSON response
+      const data = await response.json();
 
-    //   if (response.ok) {
-    //     Alert.alert("Success", "Login Successful", [
-    //       { text: "OK", onPress: () => navigation.navigate("Home") },
-    //     ]);
-    //   } else {
-    //     Alert.alert("Error", data.message || "Invalid email or password");
-    //   }
-    // } catch (error) {
-    //   console.error("Error:", error);
-    //   Alert.alert("Error", "Something went wrong!");
-    // }
-
-    console.log("Email:", email);
-    console.log("Password:", password);
+      if (response.ok) {
+        Alert.alert("Success", "Login Successful", [
+          { text: "OK", onPress: () => navigation.navigate("Home") },
+        ]);
+      } else {
+        Alert.alert("Error", data.message || "Invalid email or password");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      Alert.alert("Error", "Something went wrong!");
+    }
   };
 
   return (
