@@ -8,6 +8,9 @@ import {
   Image,
   Alert,
 } from "react-native";
+import Constants from 'expo-constants';
+const { LOCALLINK
+} = Constants.expoConfig.extra;
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -16,7 +19,8 @@ export default function LoginScreen({ navigation }) {
   const handleLogin = async () => {
     try {
       const response = await fetch(
-        "http://192.168.18.29:8080/api/users/login",
+        // 192.168.18.29:8080
+        `http://${LOCALLINK}/api/users/login`,
         {
           method: "POST",
           headers: {

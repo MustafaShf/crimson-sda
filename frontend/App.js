@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 
-
 //import Screens
 
 import LoginScreen from "./screens/LoginScreen";
@@ -10,6 +9,7 @@ import RegisterScreen from "./screens/RegisterScreen";
 import SplashScreen from "./screens/SplashScreen";
 import RegisterDonorScreen from "./screens/RegisterDonorScreen";
 import EligibilityTestScreen from "./screens/EligibilityTestScreen";
+import ResultScreen from "./screens/ResultScreen";
 
 const Stack = createStackNavigator();
 
@@ -40,6 +40,10 @@ export default function App() {
             <Stack.Screen
               name="EligibilityTest"
               component={EligibilityTestScreen}
+            />
+            <Stack.Screen
+              name="Result"
+              component={ResultScreen}
             />
           </>
         )}

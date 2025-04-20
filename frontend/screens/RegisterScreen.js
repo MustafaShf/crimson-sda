@@ -9,26 +9,27 @@ import {
   Alert,
 } from "react-native";
 
-export default function RegisterScreen({ navigation }) {
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+export default function RegisterDonorScreen({ navigation }) {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    phone: "",
+    address: "",
+  });
 
-  const handleRegister = () => {
-    if (!name || !password || !confirmPassword) {
+  const handleChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleNext = () => {
+    const { name, email, password, phone, address } = formData;
+    if (!name || !email || !password || !phone || !address) {
       Alert.alert("Error", "Please fill all the fields");
       return;
     }
 
-    if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
-      return;
-    }
-
-    // For now, just log the data
-    console.log("Name:", name);
-    console.log("Password:", password);
-    Alert.alert("Success", "Registered Successfully!");
+    navigation.navigate("EligibilityTest", { userData: formData });
   };
 
   return (
@@ -40,44 +41,53 @@ export default function RegisterScreen({ navigation }) {
         style={styles.logo}
       />
 
-      <Text style={styles.title}>Sign Up</Text>
+      <Text style={styles.title}>Donor Registration</Text>
 
       <TextInput
+        placeholder="Name"
+        value={formData.name}
+        onChangeText={(val) => handleChange("name", val)}
         style={styles.input}
-        placeholder="Enter Your Name"
-        value={name}
-        onChangeText={setName}
-        placeholderTextColor="#ddd"
+        placeholderTextColor="#aaa"
       />
-
       <TextInput
+        placeholder="Email"
+        value={formData.email}
+        onChangeText={(val) => handleChange("email", val)}
         style={styles.input}
+        keyboardType="email-address"
+        placeholderTextColor="#aaa"
+      />
+      <TextInput
         placeholder="Password"
         secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        placeholderTextColor="#ddd"
-      />
-
-      <TextInput
+        value={formData.password}
+        onChangeText={(val) => handleChange("password", val)}
         style={styles.input}
-        placeholder="Confirm Password"
-        secureTextEntry
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        placeholderTextColor="#ddd"
+        placeholderTextColor="#aaa"
+      />
+      <TextInput
+        placeholder="Phone Number"
+        value={formData.phone}
+        onChangeText={(val) => handleChange("phone", val)}
+        style={styles.input}
+        keyboardType="phone-pad"
+        placeholderTextColor="#aaa"
+      />
+      <TextInput
+        placeholder="Address"
+        value={formData.address}
+        onChangeText={(val) => handleChange("address", val)}
+        style={styles.input}
+        placeholderTextColor="#aaa"
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Register</Text>
+      <TouchableOpacity style={styles.button} onPress={handleNext}>
+        <Text style={styles.buttonText}>Take Eligibility Test</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => navigation.navigate("Login")}>
         <Text style={styles.linkText}>Already have an account? Login</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => navigation.navigate("RegisterDonor")}>
-        <Text style={styles.linkText}>Register as donor</Text>
       </TouchableOpacity>
     </View>
   );
