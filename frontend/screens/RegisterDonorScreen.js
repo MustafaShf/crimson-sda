@@ -9,12 +9,12 @@ import {
   Alert,
 } from "react-native";
 
-export default function RegisterScreen({ navigation }) {
+export default function RegisterDonorScreen({ navigation }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const handleRegister = () => {
+  const handleEligibilityTest = () => {
     if (!name || !password || !confirmPassword) {
       Alert.alert("Error", "Please fill all the fields");
       return;
@@ -25,10 +25,7 @@ export default function RegisterScreen({ navigation }) {
       return;
     }
 
-    // For now, just log the data
-    console.log("Name:", name);
-    console.log("Password:", password);
-    Alert.alert("Success", "Registered Successfully!");
+    navigation.navigate("EligibilityTest");
   };
 
   return (
@@ -40,7 +37,7 @@ export default function RegisterScreen({ navigation }) {
         style={styles.logo}
       />
 
-      <Text style={styles.title}>Sign Up</Text>
+      <Text style={styles.title}>Register As Donor</Text>
 
       <TextInput
         style={styles.input}
@@ -68,16 +65,8 @@ export default function RegisterScreen({ navigation }) {
         placeholderTextColor="#ddd"
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Register</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-        <Text style={styles.linkText}>Already have an account? Login</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => navigation.navigate("RegisterDonor")}>
-        <Text style={styles.linkText}>Register as donor</Text>
+      <TouchableOpacity style={styles.button} onPress={handleEligibilityTest}>
+        <Text style={styles.buttonText}>Take Eligibility Test</Text>
       </TouchableOpacity>
     </View>
   );
@@ -88,7 +77,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff5f5",
+    backgroundColor: "#fff5f5", // Light red/pink background
     padding: 20,
   },
   logo: {
@@ -99,7 +88,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: "bold",
-    color: "#d32f2f",
+    color: "#d32f2f", // Dark Red
     marginBottom: 20,
   },
   input: {
@@ -107,13 +96,13 @@ const styles = StyleSheet.create({
     padding: 12,
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: "#d32f2f",
+    borderColor: "#d32f2f", // Red border
     borderRadius: 8,
     backgroundColor: "#fff",
     color: "#333",
   },
   button: {
-    backgroundColor: "#d32f2f",
+    backgroundColor: "#d32f2f", // Dark red button
     padding: 12,
     borderRadius: 8,
     width: "100%",
@@ -127,7 +116,20 @@ const styles = StyleSheet.create({
   },
   linkText: {
     marginTop: 15,
-    color: "#d32f2f",
+    color: "#d32f2f", // Red color for the link
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  wrapper: {
+    flex: 1,
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#fff5f5",
+    padding: 20,
+  },
+  adminLink: {
+    marginBottom: 20,
+    color: "#6a1b9a", // Purple shade for contrast
     fontSize: 16,
     fontWeight: "bold",
   },

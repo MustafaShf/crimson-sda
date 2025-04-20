@@ -14,31 +14,34 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
-    try {
-      const response = await fetch(
-        "http://192.168.18.29:8080/api/users/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        }
-      );
+    // try {
+    //   const response = await fetch(
+    //     "http://192.168.18.29:8080/api/users/login",
+    //     {
+    //       method: "POST",
+    //       headers: {
+    //         "Content-Type": "application/json",
+    //       },
+    //       body: JSON.stringify({ email, password }),
+    //     }
+    //   );
 
-      const data = await response.json(); // Expecting JSON response
+    //   const data = await response.json(); // Expecting JSON response
 
-      if (response.ok) {
-        Alert.alert("Success", "Login Successful", [
-          { text: "OK", onPress: () => navigation.navigate("Home") },
-        ]);
-      } else {
-        Alert.alert("Error", data.message || "Invalid email or password");
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      Alert.alert("Error", "Something went wrong!");
-    }
+    //   if (response.ok) {
+    //     Alert.alert("Success", "Login Successful", [
+    //       { text: "OK", onPress: () => navigation.navigate("Home") },
+    //     ]);
+    //   } else {
+    //     Alert.alert("Error", data.message || "Invalid email or password");
+    //   }
+    // } catch (error) {
+    //   console.error("Error:", error);
+    //   Alert.alert("Error", "Something went wrong!");
+    // }
+
+    console.log("Email:", email);
+    console.log("Password:", password);
   };
 
   return (
@@ -79,9 +82,9 @@ export default function LoginScreen({ navigation }) {
         <Text style={styles.linkText}>Don't have an account? Register</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.navigate("AdminLogin")}>
+      {/* <TouchableOpacity onPress={() => navigation.navigate("AdminLogin")}>
         <Text style={styles.adminLink}>Login as Admin</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 }
