@@ -7,9 +7,11 @@ import { createStackNavigator } from "@react-navigation/stack";
 import LoginScreen from "./screens/LoginScreen";
 import RegisterScreen from "./screens/RegisterScreen";
 import SplashScreen from "./screens/SplashScreen";
-import RegisterDonorScreen from "./screens/RegisterDonorScreen";
+//import RegisterDonorScreen from "./screens/RegisterDonorScreen";
 import EligibilityTestScreen from "./screens/EligibilityTestScreen";
 import ResultScreen from "./screens/ResultScreen";
+import BottomTabsNavigator from "./navigation/BottomTabsNavigator";
+
 
 const Stack = createStackNavigator();
 
@@ -33,10 +35,10 @@ export default function App() {
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
-            <Stack.Screen
+            {/* <Stack.Screen
               name="RegisterDonor"
               component={RegisterDonorScreen}
-            />
+            /> */}
             <Stack.Screen
               name="EligibilityTest"
               component={EligibilityTestScreen}
@@ -45,6 +47,8 @@ export default function App() {
               name="Result"
               component={ResultScreen}
             />
+            <Stack.Screen name="Main" component={BottomTabsNavigator} />
+
           </>
         )}
       </Stack.Navigator>

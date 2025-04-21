@@ -8,9 +8,8 @@ import {
   Image,
   Alert,
 } from "react-native";
-import Constants from 'expo-constants';
-const { LOCALLINK
-} = Constants.expoConfig.extra;
+import Constants from "expo-constants";
+const { LOCALLINK } = Constants.expoConfig.extra;
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -20,7 +19,7 @@ export default function LoginScreen({ navigation }) {
     try {
       const response = await fetch(
         // 192.168.18.29:8080
-        `http://${LOCALLINK}/api/users/login`,
+        `http://${LOCALLINK}:8080/api/users/login`,
         {
           method: "POST",
           headers: {
@@ -34,7 +33,7 @@ export default function LoginScreen({ navigation }) {
 
       if (response.ok) {
         Alert.alert("Success", "Login Successful", [
-          { text: "OK", onPress: () => navigation.navigate("Home") },
+          { text: "OK", onPress: () => navigation.navigate("Main") },
         ]);
       } else {
         Alert.alert("Error", data.message || "Invalid email or password");
