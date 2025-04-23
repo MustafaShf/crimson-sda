@@ -24,5 +24,10 @@
     "web": {
       "favicon": "./assets/favicon.png"
     }
+    ,
+    "extra": {
+      "LOCALLINK": "192.168.1.81"
+    }
+    
   }
 }
