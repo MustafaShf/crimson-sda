@@ -14,7 +14,11 @@ import FindDonorScreen from './screens/FindDonorScreen'; // adjust path if neede
 import RequestScreen from './screens/RequestScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import NotificationScreen from './screens/NotificationScreen';
-// import LeaderboardScreen from './screens/leadScreen';
+import ChatScreen from './screens/chatScreen';
+import ChatDetailScreen from './screens/ChatDetailScreen'; // adjust path
+import LeaderboardScreen from './screens/leadScreen'; // make sure the path is correct
+// import AdminDashboard from './screens/AdminScreen'; // make sure the path is correct
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -33,7 +37,11 @@ export default function App() {
           <Stack.Screen name="Request" component={RequestScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="Notification" component={NotificationScreen} />
-          {/* <Stack.Screen name="leadBoard" component={LeaderboardScreen} /> // ✅ correct component reference */}
+          <Stack.Screen name="Chat" component={ChatScreen} />
+          <Stack.Screen name="ChatDetailScreen" component={ChatDetailScreen} />
+          <Stack.Screen name="leadBoard" component={LeaderboardScreen} />
+          {/* <Stack.Screen name="AdminPanel" component={AdminDashboard} /> */}
+        
         </Stack.Navigator>
       </NavigationContainer>
 
