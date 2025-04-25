@@ -1,87 +1,161 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Modal,
+  ScrollView,
+  Alert,
+  TouchableOpacity,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
 export default function ProfileScreen({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
+  const [activeModal, setActiveModal] = useState(null);
+
+  const user = {
+    name: 'Sabrina Aryan',
+    email: 'SabrinaAry208@gmail.com',
+    donationsCount: 3,
+    bloodType: 'A+',
+  };
+
+  const handleLogout = () => {
+    Alert.alert('Log Out', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Log Out',
+        onPress: () => console.log('User logged out'),
+        style: 'destructive',
+      },
+    ]);
+  };
+
+  const openModal = (modalType) => {
+    setActiveModal(modalType);
+    setModalVisible(true);
+  };
+
+  const renderModalContent = () => {
+    switch (activeModal) {
+      case 'guidelines':
+        return (
+          <>
+            <Text style={styles.modalTitle}>Donor & Recipient Guidelines</Text>
+            <Text style={styles.modalText}>
+              <Text style={styles.boldText}>For Donors:</Text>{'\n'}
+              • Must be 18–65 years old, in good health, and weigh at least 50kg{'\n'}
+              • Avoid donating on an empty stomach{'\n'}
+              • Wait 3 months between donations{'\n'}
+              • Avoid donation if you have flu, recent surgery, or infections{'\n'}
+              • Stay hydrated before and after donation{'\n\n'}
+              <Text style={styles.boldText}>For Recipients:</Text>{'\n'}
+              • Must match blood group compatibility{'\n'}
+              • Must pass cross-match test{'\n'}
+              • Medical assessment required before transfusion{'\n'}
+              • Regular follow-ups may be needed{'\n'}
+              • Report any adverse reactions immediately
+            </Text>
+          </>
+        );
+      case 'about':
+        return (
+          <>
+            <Text style={styles.modalTitle}>About Us</Text>
+            <Text style={styles.modalText}>
+              LifeFlow is dedicated to connecting blood donors with those in need. Founded in 2022, our mission is to ensure that no patient goes without the life-saving blood they require.
+              {'\n\n'}
+              Our platform facilitates quick and efficient blood donation matching, helping hospitals and patients during critical situations. Through technology and community engagement, we aim to increase blood donation rates and save lives.
+              {'\n\n'}
+              Join us in our mission to make blood donation accessible, efficient, and impactful.
+            </Text>
+          </>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const options = [
+    {
+      icon: 'award',
+      text: 'Leaderboard',
+      onPress: () => navigation.navigate('leadBoard'),
+    },
+    {
+      icon: 'download',
+      text: 'Download Receipt',
+      onPress: () => Alert.alert('Success', 'Receipt downloaded successfully'),
+    },
+    {
+      icon: 'book-open',
+      text: 'Donor & Recipient Guidelines',
+      onPress: () => openModal('guidelines'),
+    },
+    {
+      icon: 'info',
+      text: 'About Us',
+      onPress: () => openModal('about'),
+    },
+  ];
 
   return (
     <View style={styles.container}>
-      {/* Profile Header */}
-      <View style={styles.profileSection}>
-        <Feather name="user" size={48} color="#000" />
-        <Text style={styles.name}>Sabrina Aryan</Text>
-        <Text style={styles.email}>SabrinaAry208@gmail.com</Text>
-        <TouchableOpacity style={styles.editButton}>
-          <Text style={styles.editButtonText}>Edit Profile</Text>
-        </TouchableOpacity>
-      </View>
+      <ScrollView>
+        <View style={styles.profileSection}>
+          <View style={styles.profileImage}>
+            <Feather name="user" size={40} color="#fff" />
+          </View>
+          <Text style={styles.name}>{user.name}</Text>
+          <Text style={styles.email}>{user.email}</Text>
 
-      {/* Option List */}
-      <View style={styles.optionList}>
-      <TouchableOpacity
-  style={styles.optionRow}
-  onPress={() => navigation.navigate('leadBoard')} // ✅ Add navigation handler
->
-  <Feather name="heart" size={20} color="#000" />
-  <Text style={styles.optionText}>LeadBoard</Text>
-  <Feather name="chevron-right" size={18} color="#000" style={styles.arrow} />
-</TouchableOpacity>
-
-        <TouchableOpacity style={styles.optionRow}>
-          <Feather name="download" size={20} color="#000" />
-          <Text style={styles.optionText}>Download Receipt</Text>
-          <Feather name="chevron-right" size={18} color="#000" style={styles.arrow} />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.optionRow} onPress={() => setModalVisible(true)}>
-          <Feather name="book-open" size={20} color="#000" />
-          <Text style={styles.optionText}>Donor & Recipient Guidelines</Text>
-          <Feather name="chevron-right" size={18} color="#000" style={styles.arrow} />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.optionRow}>
-          <Feather name="info" size={20} color="#000" />
-          <Text style={styles.optionText}>About Us</Text>
-          <Feather name="chevron-right" size={18} color="#000" style={styles.arrow} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Guidelines Modal */}
-      <Modal animationType="fade" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.centeredBackdrop}>
-          <View style={styles.modalContentScrollable}>
-            <ScrollView style={styles.modalScrollView}>
-              <Text style={styles.modalTitle}>Donor & Recipient Guidelines</Text>
-              <Text style={styles.modalText}>
-                🩸 Donors must be 18–65 years old, in good health, and weigh at least 50kg.
-                {'\n\n'}
-                ✅ Avoid donating on an empty stomach.
-                {'\n\n'}
-                🕒 Wait 3 months between donations.
-                {'\n\n'}
-                🚫 Avoid if you have flu, recent surgery, or infections.
-                {'\n\n'}
-                👤 Recipients must match blood group & pass cross-match test.
-                {'\n\n'}
-                📋 More guidelines can be added here as needed...
-              </Text>
-              <Pressable style={styles.closeButton} onPress={() => setModalVisible(false)}>
-                <Text style={styles.closeButtonText}>Got it</Text>
-              </Pressable>
-            </ScrollView>
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{user.donationsCount}</Text>
+              <Text style={styles.statLabel}>Donations</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{user.bloodType}</Text>
+              <Text style={styles.statLabel}>Blood Type</Text>
+            </View>
           </View>
         </View>
-      </Modal>
 
-      {/* Logout Row */}
-      <TouchableOpacity style={[styles.optionRow, styles.logoutRow]}>
-        <Feather name="log-out" size={20} color="#000" />
-        <Text style={styles.optionText}>Log Out</Text>
-        <Feather name="chevron-right" size={18} color="#000" style={styles.arrow} />
-      </TouchableOpacity>
+        <View style={styles.optionList}>
+          {options.map((item, index) => (
+            <Pressable
+              key={index}
+              style={({ pressed }) => [
+                styles.optionRow,
+                pressed && styles.optionPressed,
+              ]}
+              onPress={item.onPress}
+            >
+              <View style={styles.iconContainer}>
+                <Feather name={item.icon} size={18} color="#fff" />
+              </View>
+              <Text style={styles.optionText}>{item.text}</Text>
+              <Feather name="chevron-right" size={18} color="#999" />
+            </Pressable>
+          ))}
+        </View>
 
-      {/* Bottom Tab Bar */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.logoutButton,
+            pressed && styles.logoutPressed,
+          ]}
+          onPress={handleLogout}
+        >
+          <Feather name="log-out" size={18} color="#fff" />
+          <Text style={styles.logoutText}>Log Out</Text>
+        </Pressable>
+      </ScrollView>
+
+      {/* Bottom Tab Bar (fixed outside the scroll) */}
       <View style={styles.tabBar}>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Home')}>
           <Feather name="home" size={22} color="#111" />
@@ -100,64 +174,99 @@ export default function ProfileScreen({ navigation }) {
           <Text style={[styles.tabText, { color: '#D2042D' }]}>Profile</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Modal */}
+      <Modal visible={modalVisible} transparent animationType="slide">
+        <View style={styles.centeredBackdrop}>
+          <Pressable
+            style={styles.backdropTouchable}
+            onPress={() => setModalVisible(false)}
+          />
+          <View style={styles.modalContent}>
+            <ScrollView contentContainerStyle={styles.modalScrollContent}>
+              {renderModalContent()}
+              <Pressable
+                style={styles.closeButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFF5F5',
-    justifyContent: 'space-between',
-  },
+  container: { flex: 1, backgroundColor: '#FFF5F5' },
   profileSection: {
     alignItems: 'center',
-    marginTop: 40,
+    paddingVertical: 30,
+    backgroundColor: '#fff',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  name: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginTop: 10,
-  },
-  email: {
-    fontSize: 14,
-    color: '#444',
+  profileImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#870D25',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 10,
   },
-  editButton: {
-    backgroundColor: '#007BFF',
-    paddingHorizontal: 15,
-    paddingVertical: 6,
-    borderRadius: 5,
+  name: { fontSize: 20, fontWeight: 'bold', color: '#111' },
+  email: { fontSize: 14, color: '#666', marginBottom: 10 },
+  statsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F8F8F8',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginTop: 10,
   },
-  editButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  optionList: {
-    marginVertical: 30,
-    paddingHorizontal: 20,
-  },
+  statItem: { alignItems: 'center', flex: 1 },
+  statValue: { fontSize: 18, fontWeight: 'bold', color: '#870D25' },
+  statLabel: { fontSize: 12, color: '#666', marginTop: 4 },
+  statDivider: { width: 1, backgroundColor: '#DDD', marginHorizontal: 15 },
+  optionList: { paddingHorizontal: 20, paddingTop: 20 },
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 12,
+    elevation: 2,
+  },
+  optionPressed: { backgroundColor: '#f0f0f0' },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#870D25',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  optionText: { flex: 1, fontSize: 16, color: '#333', fontWeight: '500' },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E63946',
     paddingVertical: 16,
-    borderBottomWidth: 0.5,
-    borderColor: '#aaa',
+    borderRadius: 12,
+    margin: 20,
   },
-  optionText: {
-    flex: 1,
+  logoutPressed: { opacity: 0.8 },
+  logoutText: {
+    color: '#fff',
+    fontWeight: 'bold',
     fontSize: 16,
-    marginLeft: 10,
-  },
-  arrow: {
-    marginLeft: 'auto',
-  },
-  logoutRow: {
-    marginTop: 20,
-    borderTopWidth: 0.5,
-    borderColor: '#aaa',
-    paddingHorizontal: 20,
+    marginLeft: 8,
   },
   tabBar: {
     flexDirection: 'row',
@@ -168,52 +277,54 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     elevation: 10,
   },
-  tabItem: {
-    alignItems: 'center',
-  },
-  tabText: {
-    fontSize: 12,
-    marginTop: 4,
-    color: '#111',
-  },
+  tabItem: { alignItems: 'center' },
+  tabText: { fontSize: 12, marginTop: 4, color: '#111' },
   centeredBackdrop: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 20,
+    justifyContent: 'flex-end',
   },
-  modalContentScrollable: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
+  backdropTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
     maxHeight: '80%',
-    width: '100%',
-    elevation: 10,
+    elevation: 5,
   },
-  modalScrollView: {
-    width: '100%',
+  modalScrollContent: {
+    paddingVertical: 20,
+    paddingBottom: 40,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 10,
     color: '#870D25',
+    marginBottom: 16,
   },
   modalText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#333',
-    lineHeight: 22,
+    lineHeight: 24,
   },
+  boldText: { fontWeight: 'bold', color: '#222' },
   closeButton: {
-    marginTop: 20,
     backgroundColor: '#870D25',
-    padding: 10,
-    borderRadius: 10,
+    padding: 14,
+    borderRadius: 12,
+    marginTop: 24,
     alignItems: 'center',
   },
   closeButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });

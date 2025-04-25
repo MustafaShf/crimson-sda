@@ -18,10 +18,12 @@
     "dotenv": "^16.5.0",
     "expo": "~52.0.43",
     "expo-status-bar": "~2.0.1",
+    "lottie-react-native": "7.1.0",
     "prop-types": "^15.8.1",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.9",
+    "react-native-calendars": "^1.1311.1",
     "react-native-dotenv": "^3.4.11",
     "react-native-gesture-handler": "^2.25.0",
     "react-native-paper": "^5.13.3",
@@ -31,8 +33,7 @@
     "react-native-screens": "^4.10.0",
     "react-native-toast-message": "^2.3.0",
     "react-native-vector-icons": "^10.2.0",
-    "react-native-web": "~0.19.13",
-    "lottie-react-native": "7.1.0"
+    "react-native-web": "~0.19.13"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

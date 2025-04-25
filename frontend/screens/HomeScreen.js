@@ -1,8 +1,58 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import ChecklistCard from './ChecklistCard'; // adjust path if needed
+import BloodTypeChart from './BloodTypeChart'; // adjust path if needed
 
 export default function HomeScreen({ navigation }) {
+  // Current date for the calendar
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  
+  // Generate calendar days
+  const generateCalendarDays = () => {
+    const daysInMonth = new Date(
+      currentMonth.getFullYear(), 
+      currentMonth.getMonth() + 1, 
+      0
+    ).getDate();
+    
+    const firstDayOfMonth = new Date(
+      currentMonth.getFullYear(), 
+      currentMonth.getMonth(), 
+      1
+    ).getDay();
+    
+    const days = [];
+    
+    // Add empty spaces for days before the first day of month
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      days.push({ day: '', empty: true });
+    }
+    
+    // Add actual days
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push({ day: i, empty: false });
+    }
+    
+    return days;
+  };
+
+  // Handle month navigation
+  const changeMonth = (direction) => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setMonth(currentMonth.getMonth() + direction);
+    setCurrentMonth(newMonth);
+  };
+  
+  // Calendar days
+  const calendarDays = generateCalendarDays();
+  
+  // Format month and year
+  const monthYearString = currentMonth.toLocaleDateString('en-US', { 
+    month: 'long', 
+    year: 'numeric' 
+  });
+
   return (
     <View style={styles.container}>
       {/* Header with Countdown */}
@@ -32,6 +82,68 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.circleLarge} />
       <View style={[styles.circleSmall, { top: 40, right: 80 }]} />
       <View style={[styles.circleMedium, { bottom: 20, left: 60 }]} />
+
+      {/* Calendar Section */}
+      <ScrollView style={styles.calendarContainer}>
+        <View style={styles.calendarCard}>
+          <View style={styles.calendarHeader}>
+            <TouchableOpacity onPress={() => changeMonth(-1)}>
+              <Feather name="chevron-left" size={24} color="#870D25" />
+            </TouchableOpacity>
+            <Text style={styles.monthYearText}>{monthYearString}</Text>
+            <TouchableOpacity onPress={() => changeMonth(1)}>
+              <Feather name="chevron-right" size={24} color="#870D25" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Calendar weekday headers */}
+          <View style={styles.weekdaysRow}>
+            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day, index) => (
+              <Text key={index} style={styles.weekdayText}>{day}</Text>
+            ))}
+          </View>
+
+          {/* Calendar days grid */}
+          <View style={styles.calendarGrid}>
+            {calendarDays.map((item, index) => (
+              <TouchableOpacity 
+                key={index} 
+                style={[
+                  styles.calendarDay,
+                  item.empty ? styles.emptyDay : null,
+                  // Highlight current day - assuming the 15th is today
+                  item.day === 15 ? styles.currentDay : null,
+                  // Mark donation days - example: marking the 20th as donation day
+                  item.day === 20 ? styles.donationDay : null
+                ]}
+                disabled={item.empty}
+              >
+                <Text style={[
+                  styles.dayText,
+                  item.day === 15 ? styles.currentDayText : null,
+                  item.day === 20 ? styles.donationDayText : null
+                ]}>
+                  {item.day}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={styles.legendContainer}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, {backgroundColor: '#870D25'}]} />
+              <Text style={styles.legendText}>Donation Day</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, {backgroundColor: '#539A77'}]} />
+              <Text style={styles.legendText}>Today</Text>
+            </View>
+          </View>
+        </View>
+        <ChecklistCard />
+        <BloodTypeChart />
+
+      </ScrollView>
 
       {/* Bottom Tab Bar */}
       <View style={styles.tabBar}>
@@ -137,6 +249,106 @@ const styles = StyleSheet.create({
     right: 20,
     flexDirection: 'row',
   },
+  // Calendar styles
+  calendarContainer: {
+    flex: 1,
+    paddingHorizontal: 15,
+  },
+  calendarCard: {
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 12,
+    marginVertical: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingHorizontal: 5,
+  },
+  monthYearText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  weekdaysRow: {
+    flexDirection: 'row',
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingBottom: 5,
+  },
+  weekdayText: {
+    flex: 1,
+    textAlign: 'center',
+    color: '#666',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarDay: {
+    width: '14.28%', // 7 days per row
+    aspectRatio: 1, // Square cells
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 2,
+  },
+  emptyDay: {
+    backgroundColor: 'transparent',
+  },
+  currentDay: {
+    backgroundColor: '#539A77',
+    borderRadius: 50,
+  },
+  donationDay: {
+    backgroundColor: '#870D25',
+    borderRadius: 50,
+  },
+  dayText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  currentDayText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  donationDayText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  legendContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 5,
+  },
+  legendText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  // Tab Bar styles
   tabBar: {
     flexDirection: 'row',
     backgroundColor: 'white',
