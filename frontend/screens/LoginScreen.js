@@ -17,7 +17,7 @@ export default function LoginScreen({ navigation }) {
 
   const [adminModalVisible, setAdminModalVisible] = useState(false);
   const [adminCode, setAdminCode] = useState('');
-  const ADMIN_PASSCODE = '4587251';
+  const ADMIN_PASSCODE = '1234567';
 
   const handleAdminAccess = () => {
     if (adminCode === ADMIN_PASSCODE) {

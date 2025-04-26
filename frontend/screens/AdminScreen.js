@@ -1,395 +1,863 @@
-// import React, { useState } from 'react';
-// import { 
-//   BarChart, PieChart, LineChart, XAxis, YAxis, Tooltip, Bar, Line, Pie, Cell, ResponsiveContainer 
-// } from 'recharts';
-// import { 
-//   Menu, X, BarChart2, MessageSquare, Ban, Bell, ChevronLeft, ChevronRight, User 
-// } from 'lucide-react';
+import React, { useState, useCallback, memo, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  ScrollView, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Dimensions, 
+  StatusBar,
+  SafeAreaView,
+  Platform,
+  useColorScheme,
+  ActivityIndicator
+} from 'react-native';
+import * as Animatable from 'react-native-animatable';
+import { MaterialIcons } from '@expo/vector-icons';
+import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
+import FeedbackList from './FeedbackList';
+import BlacklistManager from './BlacklistManager';
 
-// export default function AdminDashboard() {
-//   const [blacklist, setBlacklist] = useState([
-//     { id: 1, name: 'Spam Bot 2345' },
-//     { id: 2, name: 'Fake Account' }
-//   ]);
-//   const [feedback, setFeedback] = useState([
-//     { id: 1, user: 'Ali Raza', initial: 'A', message: 'Helpful app!', date: '2025-04-21' },
-//     { id: 2, user: 'Sara Khan', initial: 'S', message: 'Needs faster matching.', date: '2025-04-19' },
-//   ]);
-//   const [input, setInput] = useState('');
-//   const [activeSection, setActiveSection] = useState('statistics');
-//   const [sidebarOpen, setSidebarOpen] = useState(true);
+const { width, height } = Dimensions.get('window');
 
-//   const toggleSidebar = () => {
-//     setSidebarOpen(!sidebarOpen);
-//   };
+// Memoized tab button component for better performance
+const TabButton = memo(({ title, icon, isActive, onPress }) => {
+  return (
+    <TouchableOpacity 
+      style={[styles.tab, isActive && styles.activeTab]}
+      onPress={onPress}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: isActive }}
+      accessibilityLabel={`${title} tab`}
+    >
+      <MaterialIcons 
+        name={icon} 
+        size={20} 
+        color={isActive ? 'white' : 'rgba(255,255,255,0.7)'} 
+        style={styles.tabIcon}
+      />
+      <Text style={[styles.tabText, isActive && styles.activeTabText]}>
+        {title}
+      </Text>
+      {isActive && <View style={styles.activeIndicator} />}
+    </TouchableOpacity>
+  );
+});
 
-//   const addToBlacklist = () => {
-//     if (input.trim()) {
-//       setBlacklist([...blacklist, { id: Date.now(), name: input.trim() }]);
-//       setInput('');
-//     }
-//   };
-
-//   const removeUser = (id) => {
-//     setBlacklist(blacklist.filter(user => user.id !== id));
-//   };
-
-//   // Mock data for charts
-//   const monthlyDonations = [
-//     { name: 'Jan', value: 20 },
-//     { name: 'Feb', value: 45 },
-//     { name: 'Mar', value: 28 },
-//     { name: 'Apr', value: 80 },
-//     { name: 'May', value: 99 },
-//     { name: 'Jun', value: 43 }
-//   ];
+// Memoized StatsCard component
+const StatsCard = memo(({ title, value, icon, color, trend = null, isDarkMode }) => {
+  const isTrendPositive = trend > 0;
+  const trendColor = isTrendPositive ? '#22C55E' : '#EF4444';
+  const trendIcon = isTrendPositive ? 'trending-up' : 'trending-down';
   
-//   const bloodTypes = [
-//     { name: 'A+', value: 35, color: '#870D25' },
-//     { name: 'O+', value: 20, color: '#D2042D' },
-//     { name: 'B+', value: 25, color: '#F28B82' },
-//     { name: 'AB+', value: 10, color: '#FFC107' },
-//   ];
+  return (
+    <Animatable.View 
+      animation="fadeIn" 
+      duration={800}
+      style={[
+        styles.statsCard, 
+        { borderLeftColor: color },
+        isDarkMode && styles.darkCard
+      ]} 
+      accessible={true} 
+      accessibilityLabel={`${title}: ${value}${trend ? `, ${Math.abs(trend)}% ${isTrendPositive ? 'increase' : 'decrease'}` : ''}`}
+    >
+      <View style={styles.statsHeader}>
+        <MaterialIcons name={icon} size={24} color={color} />
+        {trend !== null && (
+          <View style={styles.trendContainer}>
+            <MaterialIcons 
+              name={trendIcon} 
+              size={16} 
+              color={trendColor} 
+            />
+            <Text style={[styles.trendText, { color: trendColor }]}>
+              {Math.abs(trend)}%
+            </Text>
+          </View>
+        )}
+      </View>
+      <Text style={[styles.statsValue, isDarkMode && styles.darkText]}>{value}</Text>
+      <Text style={[styles.statsTitle, isDarkMode && styles.darkSubText]}>{title}</Text>
+    </Animatable.View>
+  );
+});
+
+// Memoized chart section with integrated charts
+const DashboardView = memo(({ isDarkMode }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeChartTab, setActiveChartTab] = useState('donations');
+  const [chartDimensions, setChartDimensions] = useState({
+    width: width - 40,
+    height: 220
+  });
   
-//   const userGrowth = [
-//     { name: 'Jan', value: 50 },
-//     { name: 'Feb', value: 60 },
-//     { name: 'Mar', value: 70 },
-//     { name: 'Apr', value: 80 },
-//     { name: 'May', value: 90 },
-//     { name: 'Jun', value: 110 }
-//   ];
+  // Stats data for the dashboard
+  const statsData = [
+    { id: 1, title: 'Total Donations', value: '2,547', icon: 'water-drop', color: '#870D25', trend: 12 },
+    { id: 2, title: 'Active Donors', value: '382', icon: 'people', color: '#22C55E', trend: 8 },
+    { id: 3, title: 'Pending Requests', value: '107', icon: 'pending', color: '#F59E0B', trend: -3 },
+    { id: 4, title: 'Blacklisted Users', value: '24', icon: 'block', color: '#EF4444', trend: 5 },
+  ];
+  
+  // Chart configuration
+  const chartConfig = {
+    backgroundGradientFrom: isDarkMode ? "#1E1E1E" : "#fff",
+    backgroundGradientTo: isDarkMode ? "#1E1E1E" : "#fff",
+    backgroundGradientFromOpacity: 1,
+    backgroundGradientToOpacity: 1,
+    color: (opacity = 1) => isDarkMode 
+      ? `rgba(255, 107, 129, ${opacity})` 
+      : `rgba(135, 13, 37, ${opacity})`,
+    labelColor: (opacity = 1) => isDarkMode 
+      ? `rgba(255, 255, 255, ${opacity})` 
+      : `rgba(51, 51, 51, ${opacity})`,
+    strokeWidth: 2,
+    barPercentage: 0.75,
+    useShadowColorFromDataset: false,
+    propsForDots: {
+      r: "5",
+      strokeWidth: "2",
+      stroke: isDarkMode ? "#FF6B81" : "#870D25"
+    },
+    fillShadowGradientFrom: isDarkMode ? "#FF6B81" : "#870D25",
+    fillShadowGradientTo: isDarkMode ? "rgba(255, 107, 129, 0.2)" : "rgba(135, 13, 37, 0.1)",
+    fillShadowGradientOpacity: 0.6,
+    propsForBackgroundLines: {
+      strokeDasharray: '',
+      strokeWidth: 1,
+      stroke: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+    },
+    decimalPlaces: 0,
+  };
+  
+  // Chart data
+  const monthlyDonations = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    datasets: [{ 
+      data: [20, 45, 28, 80, 99, 43],
+      color: (opacity = 1) => `rgba(135, 13, 37, ${opacity})`,
+      strokeWidth: 2.5 
+    }]
+  };
+  
+  const bloodTypes = [
+    { name: 'A+', population: 35, color: '#BF2649', legendFontColor: isDarkMode ? '#E0E0E0' : '#444', legendFontSize: 12 },
+    { name: 'B+', population: 25, color: '#D2042D', legendFontColor: isDarkMode ? '#E0E0E0' : '#444', legendFontSize: 12 },
+    { name: 'O+', population: 20, color: '#E63946', legendFontColor: isDarkMode ? '#E0E0E0' : '#444', legendFontSize: 12 },
+    { name: 'AB+', population: 10, color: '#F94144', legendFontColor: isDarkMode ? '#E0E0E0' : '#444', legendFontSize: 12 },
+    { name: 'A-', population: 5, color: '#9D0208', legendFontColor: isDarkMode ? '#E0E0E0' : '#444', legendFontSize: 12 },
+    { name: 'O-', population: 5, color: '#6A040F', legendFontColor: isDarkMode ? '#E0E0E0' : '#444', legendFontSize: 12 }
+  ];
+  
+  const userGrowth = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    datasets: [{ 
+      data: [50, 60, 70, 80, 90, 110],
+      color: (opacity = 1) => `rgba(135, 13, 37, ${opacity})`,
+      strokeWidth: 2.5
+    }]
+  };
 
-//   const renderContent = () => {
-//     switch(activeSection) {
-//       case 'statistics':
-//         return (
-//           <div className="space-y-6">
-//             <h2 className="text-2xl font-bold text-gray-800 mb-6">Dashboard Overview</h2>
-            
-//             {/* Stats Cards */}
-//             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-//               <StatCard 
-//                 icon={<User size={24} />} 
-//                 label="Donors" 
-//                 value="2,547" 
-//                 color="border-red-900" 
-//                 bgColor="bg-red-50"
-//                 textColor="text-red-900"
-//               />
-//               <StatCard 
-//                 icon={<div className="w-6 h-6">💧</div>} 
-//                 label="Donations" 
-//                 value="1,823" 
-//                 color="border-red-600" 
-//                 bgColor="bg-red-50"
-//                 textColor="text-red-600"
-//               />
-//               <StatCard 
-//                 icon={<div className="w-6 h-6">📋</div>} 
-//                 label="Requests" 
-//                 value="489" 
-//                 color="border-yellow-500" 
-//                 bgColor="bg-yellow-50"
-//                 textColor="text-yellow-600"
-//               />
-//               <StatCard 
-//                 icon={<div className="w-6 h-6">🏥</div>} 
-//                 label="Hospitals" 
-//                 value="76" 
-//                 color="border-green-500" 
-//                 bgColor="bg-green-50"
-//                 textColor="text-green-600"
-//               />
-//             </div>
-
-//             {/* Charts */}
-//             <div className="bg-white p-6 rounded-lg shadow-md">
-//               <h2 className="text-lg font-bold mb-6 text-gray-700">Monthly Donations</h2>
-//               <div className="h-64">
-//                 <ResponsiveContainer width="100%" height="100%">
-//                   <BarChart data={monthlyDonations}>
-//                     <XAxis dataKey="name" />
-//                     <YAxis />
-//                     <Tooltip />
-//                     <Bar dataKey="value" name="Donations" fill="#870D25" />
-//                   </BarChart>
-//                 </ResponsiveContainer>
-//               </div>
-//             </div>
-
-//             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-//               <div className="bg-white p-6 rounded-lg shadow-md">
-//                 <h2 className="text-lg font-bold mb-6 text-gray-700">Blood Type Distribution</h2>
-//                 <div className="flex flex-col md:flex-row items-center">
-//                   <div className="h-64 w-full">
-//                     <ResponsiveContainer width="100%" height="100%">
-//                       <PieChart>
-//                         <Pie
-//                           data={bloodTypes}
-//                           cx="50%"
-//                           cy="50%"
-//                           labelLine={false}
-//                           outerRadius={80}
-//                           dataKey="value"
-//                           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-//                         >
-//                           {bloodTypes.map((entry, index) => (
-//                             <Cell key={`cell-${index}`} fill={entry.color} />
-//                           ))}
-//                         </Pie>
-//                         <Tooltip />
-//                       </PieChart>
-//                     </ResponsiveContainer>
-//                   </div>
-//                   <div className="w-full md:w-1/2">
-//                     <ul className="mt-4 md:mt-0 space-y-3">
-//                       {bloodTypes.map((type, index) => (
-//                         <li key={index} className="flex items-center">
-//                           <div 
-//                             className="w-4 h-4 mr-3 rounded-sm" 
-//                             style={{ backgroundColor: type.color }}
-//                           ></div>
-//                           <span className="text-gray-700">{type.name}: <span className="font-medium">{type.value}%</span></span>
-//                         </li>
-//                       ))}
-//                     </ul>
-//                   </div>
-//                 </div>
-//               </div>
-
-//               <div className="bg-white p-6 rounded-lg shadow-md">
-//                 <h2 className="text-lg font-bold mb-6 text-gray-700">User Growth</h2>
-//                 <div className="h-64">
-//                   <ResponsiveContainer width="100%" height="100%">
-//                     <LineChart data={userGrowth}>
-//                       <XAxis dataKey="name" />
-//                       <YAxis />
-//                       <Tooltip />
-//                       <Line type="monotone" dataKey="value" name="Users" stroke="#D2042D" strokeWidth={2} />
-//                     </LineChart>
-//                   </ResponsiveContainer>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         );
-//       case 'feedback':
-//         return (
-//           <div>
-//             <h2 className="text-2xl font-bold text-gray-800 mb-6">User Feedback</h2>
-//             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//               {feedback.map(item => (
-//                 <div key={item.id} className="bg-white p-4 rounded-lg shadow-md flex">
-//                   <div className="w-12 h-12 rounded-full bg-red-900 text-white flex items-center justify-center mr-4 flex-shrink-0">
-//                     {item.initial}
-//                   </div>
-//                   <div>
-//                     <div className="font-semibold text-red-900">{item.user}</div>
-//                     <div className="text-gray-700 my-1">{item.message}</div>
-//                     <div className="text-xs text-gray-500">{item.date === '2025-04-21' ? '4 days ago' : '6 days ago'}</div>
-//                   </div>
-//                 </div>
-//               ))}
-//             </div>
-//           </div>
-//         );
-//       case 'blocklist':
-//         return (
-//           <div>
-//             <h2 className="text-2xl font-bold text-gray-800 mb-6">Blacklist Management</h2>
-//             <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-//               <div className="flex flex-col md:flex-row mb-4">
-//                 <input
-//                   className="flex-1 border border-gray-300 rounded-lg p-3 mb-3 md:mb-0 md:mr-3 focus:outline-none focus:ring-2 focus:ring-red-500"
-//                   placeholder="Enter username or email to block"
-//                   value={input}
-//                   onChange={(e) => setInput(e.target.value)}
-//                 />
-//                 <button 
-//                   onClick={addToBlacklist} 
-//                   className="bg-red-600 text-white px-6 py-3 rounded-lg flex items-center justify-center transition duration-200 hover:bg-red-700"
-//                 >
-//                   <Ban size={20} className="mr-2" />
-//                   Block User
-//                 </button>
-//               </div>
-//             </div>
-
-//             <div className="space-y-3">
-//               {blacklist.map(user => (
-//                 <div key={user.id} className="bg-white p-4 rounded-lg shadow-md flex justify-between items-center">
-//                   <div className="flex items-center text-gray-800">
-//                     <Ban size={20} className="mr-3 text-red-600" />
-//                     <span className="font-medium">{user.name}</span>
-//                   </div>
-//                   <button 
-//                     onClick={() => removeUser(user.id)} 
-//                     className="text-red-600 p-1 hover:bg-red-50 rounded-full transition duration-200"
-//                   >
-//                     <X size={20} />
-//                   </button>
-//                 </div>
-//               ))}
-//             </div>
-//           </div>
-//         );
-//       default:
-//         return <div>Select a section from the sidebar</div>;
-//     }
-//   };
-
-//   return (
-//     <div className="flex h-screen bg-gray-100 overflow-hidden">
-//       {/* Sidebar */}
-//       <div 
-//         className={`fixed md:relative z-30 h-full bg-gradient-to-b from-red-900 to-red-800 text-white transform transition-all duration-300 ease-in-out shadow-xl md:shadow-none
-//           ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-0 md:w-16 md:translate-x-0'}
-//         `}
-//       >
-//         <div className={`flex flex-col h-full ${!sidebarOpen && 'md:items-center'}`}>
-//           {/* Logo and header */}
-//           <div className={`p-4 ${!sidebarOpen && 'md:p-3'}`}>
-//             <div className="flex items-center justify-between">
-//               {sidebarOpen && (
-//                 <h1 className="text-xl font-bold whitespace-nowrap overflow-hidden transition-all duration-300">
-//                   Blood Admin
-//                 </h1>
-//               )}
-//               <button 
-//                 onClick={toggleSidebar}
-//                 className="md:hidden focus:outline-none"
-//               >
-//                 <X size={20} />
-//               </button>
-//             </div>
-//           </div>
+  // Handle dimension changes
+  useEffect(() => {
+    const updateDimensions = () => {
+      const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+      const isLandscape = screenWidth > screenHeight;
+      
+      const chartWidth = isLandscape 
+        ? Math.min(screenWidth * 0.65, 650)
+        : screenWidth - 40;
+      
+      const chartHeight = isLandscape 
+        ? 220
+        : 240;
+      
+      setChartDimensions({ width: chartWidth, height: chartHeight });
+    };
+    
+    updateDimensions();
+    
+    const subscription = Dimensions.addEventListener('change', updateDimensions);
+    
+    // Simulate loading
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+    
+    return () => subscription?.remove();
+  }, []);
+  
+  // Chart tab buttons
+  const chartTabs = [
+    { id: 'donations', title: 'Donations', icon: 'water-drop' },
+    { id: 'distribution', title: 'Blood Types', icon: 'pie-chart' },
+    { id: 'growth', title: 'User Growth', icon: 'trending-up' }
+  ];
+  
+  // Change chart tab
+  const handleChartTabChange = useCallback((tabId) => {
+    setActiveChartTab(tabId);
+  }, []);
+  
+  // Loading state
+  if (isLoading) {
+    return (
+      <View style={[styles.loadingContainer, isDarkMode && { backgroundColor: '#121212' }]}>
+        <ActivityIndicator size="large" color={isDarkMode ? "#FF6B81" : "#870D25"} />
+        <Text style={[styles.loadingText, isDarkMode && styles.darkText]}>Loading dashboard data...</Text>
+      </View>
+    );
+  }
+  
+  // Render the appropriate chart based on active tab
+  const renderActiveChart = () => {
+    switch (activeChartTab) {
+      case 'donations':
+        return (
+          <LineChart
+            data={monthlyDonations}
+            width={chartDimensions.width}
+            height={chartDimensions.height}
+            chartConfig={chartConfig}
+            bezier
+            style={styles.chart}
+            withInnerLines={true}
+            withShadow={true}
+            yAxisLabel=""
+            yAxisSuffix=""
+            formatYLabel={(value) => Math.round(value).toString()}
+          />
+        );
+      case 'distribution':
+        return (
+          <PieChart
+            data={bloodTypes}
+            width={chartDimensions.width}
+            height={chartDimensions.height}
+            chartConfig={chartConfig}
+            accessor={"population"}
+            backgroundColor={"transparent"}
+            paddingLeft={"15"}
+            center={[10, 0]}
+            absolute
+            hasLegend={true}
+          />
+        );
+      case 'growth':
+        return (
+          <BarChart
+            data={userGrowth}
+            width={chartDimensions.width}
+            height={chartDimensions.height}
+            chartConfig={{
+              ...chartConfig,
+              barPercentage: 0.7,
+              formatYLabel: (value) => Math.round(value).toString()
+            }}
+            style={styles.chart}
+            showValuesOnTopOfBars
+            fromZero
+            yAxisLabel=""
+            yAxisSuffix=""
+          />
+        );
+      default:
+        return null;
+    }
+  };
+  
+  return (
+    <Animatable.View animation="fadeIn" duration={800}>
+      {/* Stats Cards */}
+      <View style={styles.statsGrid}>
+        {statsData.map((item, index) => (
+          <Animatable.View 
+            key={item.id}
+            animation="fadeInUp"
+            delay={300 + (index * 100)}
+            style={styles.statsCardWrapper}
+          >
+            <StatsCard
+              title={item.title}
+              value={item.value}
+              icon={item.icon}
+              color={item.color}
+              trend={item.trend}
+              isDarkMode={isDarkMode}
+            />
+          </Animatable.View>
+        ))}
+      </View>
+      
+      {/* Integrated Dashboard */}
+      <Animatable.View 
+        animation="fadeInUp" 
+        delay={800}
+        style={[styles.dashboardCard, isDarkMode && styles.darkCard]}
+      >
+        <View style={styles.dashboardHeader}>
+          <Text style={[styles.dashboardTitle, isDarkMode && styles.darkText]}>Analytics Dashboard</Text>
+          <TouchableOpacity style={styles.optionsButton}>
+            <MaterialIcons name="more-vert" size={24} color={isDarkMode ? "#E0E0E0" : "#333"} />
+          </TouchableOpacity>
+        </View>
+        
+        {/* Chart Tabs */}
+        <View style={[styles.chartTabContainer, isDarkMode && styles.darkChartTabContainer]}>
+          {chartTabs.map((tab) => (
+            <TouchableOpacity
+              key={tab.id}
+              style={[
+                styles.chartTab,
+                activeChartTab === tab.id && styles.activeChartTab,
+                isDarkMode && activeChartTab === tab.id && styles.darkActiveChartTab
+              ]}
+              onPress={() => handleChartTabChange(tab.id)}
+            >
+              <MaterialIcons 
+                name={tab.icon} 
+                size={16} 
+                color={activeChartTab === tab.id ? 
+                  (isDarkMode ? '#FF6B81' : '#870D25') : 
+                  (isDarkMode ? '#AAA' : '#777')
+                } 
+                style={styles.chartTabIcon}
+              />
+              <Text style={[
+                styles.chartTabText,
+                activeChartTab === tab.id && styles.activeChartTabText,
+                isDarkMode && styles.darkChartTabText,
+                isDarkMode && activeChartTab === tab.id && styles.darkActiveChartTabText
+              ]}>
+                {tab.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        
+        {/* Chart Area */}
+        <View style={styles.chartContainer}>
+          {renderActiveChart()}
+        </View>
+        
+        {/* Legend/Status Row */}
+        <View style={styles.chartStatusRow}>
+          <View style={styles.dataPeriodContainer}>
+            <Text style={[styles.dataPeriodLabel, isDarkMode && styles.darkSubText]}>
+              {activeChartTab === 'distribution' ? 'Current Distribution' : 'Last 6 Months'}
+            </Text>
+          </View>
           
-//           {/* Navigation links */}
-//           <nav className="mt-4 flex-1">
-//             <ul>
-//               <li>
-//                 <button 
-//                   className={`w-full text-left py-3 pl-4 pr-3 flex items-center transition-colors ${
-//                     activeSection === 'statistics' 
-//                       ? 'bg-red-700 border-l-4 border-white' 
-//                       : 'hover:bg-red-800 border-l-4 border-transparent'
-//                   }`}
-//                   onClick={() => setActiveSection('statistics')}
-//                 >
-//                   <BarChart2 size={20} className="flex-shrink-0" />
-//                   {sidebarOpen && <span className="ml-3">Statistics</span>}
-//                 </button>
-//               </li>
-//               <li>
-//                 <button 
-//                   className={`w-full text-left py-3 pl-4 pr-3 flex items-center transition-colors ${
-//                     activeSection === 'feedback' 
-//                       ? 'bg-red-700 border-l-4 border-white' 
-//                       : 'hover:bg-red-800 border-l-4 border-transparent'
-//                   }`}
-//                   onClick={() => setActiveSection('feedback')}
-//                 >
-//                   <MessageSquare size={20} className="flex-shrink-0" />
-//                   {sidebarOpen && <span className="ml-3">Feedback</span>}
-//                 </button>
-//               </li>
-//               <li>
-//                 <button 
-//                   className={`w-full text-left py-3 pl-4 pr-3 flex items-center transition-colors ${
-//                     activeSection === 'blocklist' 
-//                       ? 'bg-red-700 border-l-4 border-white' 
-//                       : 'hover:bg-red-800 border-l-4 border-transparent'
-//                   }`}
-//                   onClick={() => setActiveSection('blocklist')}
-//                 >
-//                   <Ban size={20} className="flex-shrink-0" />
-//                   {sidebarOpen && <span className="ml-3">Blacklist</span>}
-//                 </button>
-//               </li>
-//             </ul>
-//           </nav>
+          <TouchableOpacity style={styles.downloadButton}>
+            <MaterialIcons name="file-download" size={16} color={isDarkMode ? "#AAA" : "#666"} />
+            <Text style={[styles.downloadText, isDarkMode && styles.darkSubText]}>Export</Text>
+          </TouchableOpacity>
+        </View>
+      </Animatable.View>
+      
+      {/* Recent Activity */}
+      <Animatable.View 
+        animation="fadeInUp"
+        delay={1000}
+        style={[styles.recentActivityCard, isDarkMode && styles.darkCard]}
+      >
+        <View style={styles.recentActivityHeader}>
+          <Text style={[styles.recentActivityTitle, isDarkMode && styles.darkText]}>
+            Recent Activity
+          </Text>
+          <TouchableOpacity style={styles.viewAllButton}>
+            <Text style={[styles.viewAllText, {color: isDarkMode ? "#FF6B81" : "#870D25"}]}>
+              View All
+            </Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Activity items */}
+        {[1, 2, 3].map((item) => (
+          <View key={item} style={styles.activityItem}>
+            <View style={[
+              styles.activityIconContainer, 
+              {backgroundColor: isDarkMode ? 'rgba(255,107,129,0.1)' : 'rgba(135,13,37,0.1)'}
+            ]}>
+              <MaterialIcons 
+                name={item === 1 ? "person-add" : item === 2 ? "water-drop" : "notifications"} 
+                size={18} 
+                color={isDarkMode ? "#FF6B81" : "#870D25"} 
+              />
+            </View>
+            <View style={styles.activityContent}>
+              <Text style={[styles.activityText, isDarkMode && styles.darkText]}>
+                {item === 1 ? "New donor registered" : 
+                 item === 2 ? "Donation completed" : 
+                 "Blood request approved"}
+              </Text>
+              <Text style={[styles.activityTime, isDarkMode && styles.darkSubText]}>
+                {item === 1 ? "10 mins ago" : 
+                 item === 2 ? "2 hours ago" : 
+                 "5 hours ago"}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </Animatable.View>
+    </Animatable.View>
+  );
+});
 
-//           {/* Bottom section with controls */}
-//           <div className={`p-4 ${!sidebarOpen && 'md:p-3'}`}>
-//             <div className={`flex items-center ${!sidebarOpen && 'md:justify-center'}`}>
-//               <div className="w-8 h-8 rounded-full bg-red-700 flex items-center justify-center">
-//                 <User size={16} />
-//               </div>
-//               {sidebarOpen && <span className="ml-3 font-medium">Admin User</span>}
-//             </div>
-//           </div>
+export default function AdminScreen() {
+  const [activeTab, setActiveTab] = useState('overview');
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
 
-//           {/* Toggle button for larger screens */}
-//           <div className="hidden md:block absolute -right-3 top-20">
-//             <button 
-//               onClick={toggleSidebar}
-//               className="bg-red-800 text-white rounded-full p-1 shadow-lg focus:outline-none"
-//             >
-//               {sidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-//             </button>
-//           </div>
-//         </div>
-//       </div>
+  // Tab configuration
+  const tabs = [
+    { id: 'overview', title: 'Overview', icon: 'dashboard' },
+    { id: 'feedback', title: 'Feedback', icon: 'feedback' },
+    { id: 'blacklist', title: 'Blacklist', icon: 'block' }
+  ];
 
-//       {/* Main Content Area */}
-//       <div className="flex-1 flex flex-col overflow-hidden">
-//         {/* Top Header */}
-//         <header className="bg-white shadow-sm z-20">
-//           <div className="flex items-center justify-between px-4 md:px-6 py-3">
-//             <div className="flex items-center">
-//               <button 
-//                 onClick={() => setSidebarOpen(true)}
-//                 className={`text-gray-600 mr-4 md:hidden focus:outline-none ${sidebarOpen ? 'hidden' : 'block'}`}
-//               >
-//                 <Menu size={24} />
-//               </button>
-//               <div className="text-lg font-medium text-gray-700 truncate">
-//                 {activeSection === 'statistics' && 'Dashboard Overview'}
-//                 {activeSection === 'feedback' && 'User Feedback'}
-//                 {activeSection === 'blocklist' && 'Blacklist Management'}
-//               </div>
-//             </div>
-//             <div className="flex items-center space-x-3">
-//               <button className="text-gray-600 hover:text-gray-800 focus:outline-none">
-//                 <Bell size={24} />
-//               </button>
-//               <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center text-red-800 font-bold">
-//                 A
-//               </div>
-//             </div>
-//           </div>
-//         </header>
+  // Using useCallback to optimize tab switching
+  const handleTabPress = useCallback((tabId) => {
+    setActiveTab(tabId);
+  }, []);
 
-//         {/* Main Content */}
-//         <main className="flex-1 overflow-y-auto p-4 md:p-6">
-//           <div className="max-w-7xl mx-auto">
-//             {renderContent()}
-//           </div>
-//         </main>
-//       </div>
+  return (
+    <SafeAreaView style={[styles.container, isDarkMode && styles.darkContainer]}>
+      <StatusBar 
+        barStyle="light-content"
+        backgroundColor={isDarkMode ? "#5D0919" : "#870D25"}
+      />
+      
+      {/* Header */}
+      <Animatable.View 
+        animation="fadeIn" 
+        duration={600} 
+        style={[styles.header, isDarkMode && styles.darkHeader]}
+      >
+        <View style={styles.headerContent}>
+          <Text style={styles.headerText}>Admin Panel</Text>
+          <TouchableOpacity 
+            style={styles.helpButton}
+            accessibilityLabel="Help"
+            accessibilityRole="button"
+          >
+            <MaterialIcons name="help-outline" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
+        
+        {/* Tab Navigation */}
+        <View style={styles.tabContainer} accessibilityRole="tablist">
+          {tabs.map((tab) => (
+            <TabButton
+              key={tab.id}
+              title={tab.title}
+              icon={tab.icon}
+              isActive={activeTab === tab.id}
+              onPress={() => handleTabPress(tab.id)}
+            />
+          ))}
+        </View>
+      </Animatable.View>
 
-//       {/* Overlay for mobile when sidebar is open */}
-//       {sidebarOpen && (
-//         <div 
-//           className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-20"
-//           onClick={() => setSidebarOpen(false)}
-//         ></div>
-//       )}
-//     </div>
-//   );
-// }
+      {/* Content Area */}
+      <ScrollView 
+        contentContainerStyle={[
+          styles.contentContainer, 
+          isDarkMode && styles.darkContentContainer
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {activeTab === 'overview' && (
+          <DashboardView isDarkMode={isDarkMode} />
+        )}
+        
+        {activeTab === 'feedback' && (
+          <Animatable.View animation="fadeInUp" duration={600}>
+            <FeedbackList isDarkMode={isDarkMode} />
+          </Animatable.View>
+        )}
+        
+        {activeTab === 'blacklist' && (
+          <Animatable.View animation="fadeInUp" duration={600}>
+            <BlacklistManager isDarkMode={isDarkMode} />
+          </Animatable.View>
+        )}
+      </ScrollView>
+      
+      {/* Floating Action Button */}
+      <Animatable.View 
+        animation="bounceIn" 
+        delay={1000} 
+        style={styles.fabContainer}
+      >
+        <TouchableOpacity 
+          style={[styles.fab, isDarkMode && styles.darkFab]}
+          activeOpacity={0.8}
+          accessibilityLabel="Add new item"
+          accessibilityRole="button"
+        >
+          <MaterialIcons name="add" size={24} color="white" />
+        </TouchableOpacity>
+      </Animatable.View>
+    </SafeAreaView>
+  );
+}
 
-// function StatCard({ icon, label, value, color, bgColor, textColor }) {
-//   return (
-//     <div className={`bg-white p-4 rounded-lg shadow-md ${bgColor} border-l-4 ${color} transition-transform duration-300 transform hover:scale-105`}>
-//       <div className={`flex items-center ${textColor}`}>
-//         {icon}
-//       </div>
-//       <div className="mt-3">
-//         <div className="font-bold text-xl md:text-2xl">{value}</div>
-//         <div className="text-sm text-gray-600">{label}</div>
-//       </div>
-//     </div>
-//   );
-// }
+const styles = StyleSheet.create({
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F8F9FA',
+  },
+  darkContainer: {
+    backgroundColor: '#121212',
+  },
+  header: { 
+    backgroundColor: '#870D25', 
+    padding: 20, 
+    borderBottomLeftRadius: 25, 
+    borderBottomRightRadius: 25,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 6,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 10,
+  },
+  darkHeader: {
+    backgroundColor: '#5D0919',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  headerText: { 
+    color: 'white', 
+    fontSize: 24, 
+    fontWeight: 'bold',
+  },
+  helpButton: {
+    padding: 5,
+  },
+  tabContainer: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-around',
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderRadius: 12,
+    padding: 4,
+    marginTop: 5,
+  },
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    position: 'relative',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  activeTab: {
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  tabIcon: {
+    marginRight: 6,
+  },
+  tabText: { 
+    color: 'rgba(255,255,255,0.9)', 
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  activeIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: '25%',
+    right: '25%',
+    height: 3,
+    backgroundColor: 'white',
+    borderRadius: 1.5,
+  },
+  contentContainer: { 
+    padding: 16,
+    paddingBottom: 80, // Extra padding for FAB
+  },
+  darkContentContainer: {
+    backgroundColor: '#121212',
+  },
+  fabContainer: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+  },
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#870D25',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
+  },
+  darkFab: {
+    backgroundColor: '#B71C1C',
+  },
+  
+  // Stats Section Styles
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  statsCardWrapper: {
+    width: '48%',
+    marginBottom: 12,
+  },
+  statsCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 14,
+    borderLeftWidth: 4,
+    height: '100%',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  darkCard: {
+    backgroundColor: '#1E1E1E',
+    borderColor: '#333',
+  },
+  statsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  statsValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  statsTitle: {
+    fontSize: 12,
+    color: '#666',
+  },
+  trendContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  trendText: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginLeft: 2,
+  },
+  darkText: {
+    color: '#E0E0E0',
+  },
+  darkSubText: {
+    color: '#AAAAAA',
+  },
+  
+  // Dashboard Card Styles
+  dashboardCard: {
+    backgroundColor: 'white',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  dashboardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  dashboardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  optionsButton: {
+    padding: 4,
+  },
+  chartTabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F7',
+    borderRadius: 10,
+    padding: 4,
+    marginBottom: 16,
+  },
+  darkChartTabContainer: {
+    backgroundColor: '#2A2A2A',
+  },
+  chartTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    flex: 1,
+  },
+  activeChartTab: {
+    backgroundColor: 'white',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  darkActiveChartTab: {
+    backgroundColor: '#383838',
+  },
+  chartTabIcon: {
+    marginRight: 5,
+  },
+  chartTabText: {
+    fontSize: 12,
+    color: '#777',
+    fontWeight: '500',
+  },
+  activeChartTabText: {
+    color: '#870D25',
+    fontWeight: '600',
+  },
+  darkChartTabText: {
+    color: '#AAA',
+  },
+  darkActiveChartTabText: {
+    color: '#FF6B81',
+  },
+  chartContainer: {
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  chart: {
+    borderRadius: 8,
+    marginVertical: 8,
+  },
+  chartStatusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    marginTop: 5,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  dataPeriodContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dataPeriodLabel: {
+    fontSize: 12,
+    color: '#777',
+  },
+  downloadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    backgroundColor: '#F5F5F7',
+  },
+  downloadText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 4,
+  },
+  
+  // Recent Activity Styles
+  recentActivityCard: {
+    backgroundColor: 'white',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  recentActivityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  recentActivityTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  viewAllButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  viewAllText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  activityIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityText: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 4,
+  },
+  activityTime: {
+    fontSize: 12,
+    color: '#999',
+  },
+  
+  // Loading styles
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#F8F9FA',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#666',
+  }
+});

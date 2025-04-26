@@ -3,17 +3,21 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView } from 
 import { Feather } from '@expo/vector-icons';
 import RNPickerSelect from 'react-native-picker-select';
 
-export default function RequestScreen({ navigation }) {
+export default function DonateScreen({ navigation }) {
   const [bloodGroup, setBloodGroup] = useState('');
   const [gender, setGender] = useState('');
+  const [name, setName] = useState('');
+  const [age, setAge] = useState('');
+  const [location, setLocation] = useState('');
+  const [units, setUnits] = useState('');
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Requests</Text>
-        <Text style={styles.headerSubtext}>Your request will be displayed to all the donors</Text>
-        
+        <Text style={styles.headerTitle}>Donate Blood</Text>
+        <Text style={styles.headerSubtext}>Register yourself as a donor</Text>
+
         {/* Top Right Icons */}
         <View style={styles.topRightIcons}>
           <Feather name="message-square" size={20} color="white" />
@@ -21,15 +25,45 @@ export default function RequestScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Form in ScrollView to handle overflow */}
+      {/* Form */}
       <ScrollView style={styles.scrollContainer}>
         <View style={styles.formContainer}>
+          
           {/* Name */}
-          <Text style={styles.label}>Name</Text>
-          <TextInput style={styles.input} placeholder="Enter name" />
+          <Text style={styles.label}>Full Name</Text>
+          <TextInput 
+            style={styles.input} 
+            placeholder="Enter your full name" 
+            value={name}
+            onChangeText={setName}
+          />
+
+          {/* Age */}
+          <Text style={styles.label}>Age</Text>
+          <TextInput 
+            style={styles.input} 
+            placeholder="Enter your age" 
+            keyboardType="numeric"
+            value={age}
+            onChangeText={setAge}
+          />
+
+          {/* Gender */}
+          <Text style={styles.label}>Gender</Text>
+          <View style={styles.pickerContainer}>
+            <RNPickerSelect
+              onValueChange={setGender}
+              value={gender}
+              placeholder={{ label: 'Select', value: null }}
+              items={[
+                { label: 'Male', value: 'male' },
+                { label: 'Female', value: 'female' }
+              ]}
+            />
+          </View>
 
           {/* Blood Group */}
-          <Text style={styles.label}>Blood group</Text>
+          <Text style={styles.label}>Blood Group</Text>
           <View style={styles.pickerContainer}>
             <RNPickerSelect
               onValueChange={setBloodGroup}
@@ -39,45 +73,31 @@ export default function RequestScreen({ navigation }) {
             />
           </View>
 
-          {/* Number of Units */}
-          <Text style={styles.label}>Number of Units</Text>
-          <TextInput style={styles.input} placeholder="Enter number" keyboardType="numeric" />
+          {/* Location */}
+          <Text style={styles.label}>Location</Text>
+          <TextInput 
+            style={styles.input} 
+            placeholder="Enter your location" 
+            value={location}
+            onChangeText={setLocation}
+          />
 
-          {/* Date */}
-          <Text style={styles.label}>Date</Text>
-          <View style={styles.inputWithIcon}>
-            <TextInput style={{ flex: 1 }} placeholder="Select date" />
-            <Feather name="calendar" size={20} color="#870D25" />
-          </View>
+          {/* Units */}
+          <Text style={styles.label}>Units to Donate</Text>
+          <TextInput 
+            style={styles.input} 
+            placeholder="Enter units (e.g., 1, 2)" 
+            keyboardType="numeric"
+            value={units}
+            onChangeText={setUnits}
+          />
 
-          {/* Time */}
-          <Text style={styles.label}>Time</Text>
-          <View style={styles.timeContainer}>
-            <TouchableOpacity style={styles.timeButton}><Text style={styles.timeText}>AM</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.timeButton}><Text style={styles.timeText}>PM</Text></TouchableOpacity>
-          </View>
-
-          {/* Gender */}
-          <Text style={styles.label}>Gender</Text>
-          <View style={styles.pickerContainer}>
-            <RNPickerSelect
-              onValueChange={setGender}
-              value={gender}
-              placeholder={{ label: 'Select', value: null }}
-              items={[{ label: 'Male', value: 'male' }, { label: 'Female', value: 'female' }]}
-            />
-          </View>
-
-          {/* Hospital Name */}
-          <Text style={styles.label}>Hospital name</Text>
-          <TextInput style={styles.input} placeholder="Enter hospital name" />
-          
           {/* Submit Button */}
           <TouchableOpacity style={styles.submitButton}>
-            <Text style={styles.submitButtonText}>Submit Request</Text>
+            <Text style={styles.submitButtonText}>Register as Donor</Text>
           </TouchableOpacity>
-          
-          {/* Add padding at bottom to ensure all content is visible above tab bar */}
+
+          {/* Space at the bottom */}
           <View style={{ height: 80 }} />
         </View>
       </ScrollView>
@@ -85,7 +105,7 @@ export default function RequestScreen({ navigation }) {
       {/* Bottom Tab Bar */}
       <View style={styles.tabBar}>
         <TouchableOpacity 
-          style={styles.tabItem} 
+          style={styles.tabItem}
           onPress={() => navigation.navigate('Home')}
         >
           <Feather name="home" size={22} color="#111" />
@@ -93,16 +113,16 @@ export default function RequestScreen({ navigation }) {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={styles.tabItem} 
+          style={styles.tabItem}
           onPress={() => navigation.navigate('FindDonor')}
         >
           <Feather name="search" size={22} color="#111" />
           <Text style={styles.tabText}>Find Donor</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.tabItem}>
+        <TouchableOpacity style={[styles.tabItem, styles.activeTab]}>
           <Feather name="droplet" size={22} color="#D2042D" />
-          <Text style={[styles.tabText, { color: '#D2042D' }]}>Request</Text>
+          <Text style={[styles.tabText, { color: '#D2042D' }]}>Donate</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
@@ -118,10 +138,7 @@ export default function RequestScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFF5F5',
-  },
+  container: { flex: 1, backgroundColor: '#FFF5F5' },
   header: {
     backgroundColor: '#870D25',
     borderBottomLeftRadius: 25,
@@ -130,34 +147,17 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     position: 'relative',
   },
-  headerTitle: {
-    color: 'white',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  headerSubtext: {
-    color: 'white',
-    fontSize: 12,
-    marginTop: 4,
-  },
+  headerTitle: { color: 'white', fontSize: 22, fontWeight: 'bold' },
+  headerSubtext: { color: 'white', fontSize: 12, marginTop: 4 },
   topRightIcons: {
     position: 'absolute',
     top: 30,
     right: 20,
     flexDirection: 'row',
   },
-  scrollContainer: {
-    flex: 1,
-  },
-  formContainer: {
-    padding: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#444',
-    marginBottom: 5,
-  },
+  scrollContainer: { flex: 1 },
+  formContainer: { padding: 20 },
+  label: { fontSize: 14, fontWeight: 'bold', color: '#444', marginBottom: 5 },
   input: {
     backgroundColor: '#fff',
     borderRadius: 10,
@@ -172,33 +172,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     elevation: 2,
   },
-  inputWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 15,
-    elevation: 2,
-  },
-  timeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  timeButton: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 12,
-    marginHorizontal: 5,
-    borderRadius: 10,
-    alignItems: 'center',
-    elevation: 2,
-  },
-  timeText: {
-    color: '#444',
-    fontWeight: 'bold',
-  },
   submitButton: {
     backgroundColor: '#870D25',
     padding: 15,
@@ -206,11 +179,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
-  submitButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
+  submitButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
   tabBar: {
     flexDirection: 'row',
     backgroundColor: 'white',
@@ -224,12 +193,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
-  tabItem: {
-    alignItems: 'center',
-  },
-  tabText: {
-    fontSize: 12,
-    marginTop: 4,
-    color: '#111',
-  },
+  tabItem: { alignItems: 'center' },
+  tabText: { fontSize: 12, marginTop: 4, color: '#111' },
+  activeTab: { backgroundColor: 'rgba(210, 4, 45, 0.1)', borderRadius: 20 },
 });

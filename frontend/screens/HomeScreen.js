@@ -1,12 +1,76 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Dimensions, Animated } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import ChecklistCard from './ChecklistCard'; // adjust path if needed
-import BloodTypeChart from './BloodTypeChart'; // adjust path if needed
+import ChecklistCard from './ChecklistCard';
+import BloodTypeChart from './BloodTypeChart';
 
 export default function HomeScreen({ navigation }) {
+  // Get device width for responsive sizing
+  const { width } = Dimensions.get('window');
+  
   // Current date for the calendar
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  // State for rotating quotes
+  const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+  // State to track if images failed to load
+  const [imageLoadError, setImageLoadError] = useState(false);
+  // Animation value for fading
+  const fadeAnim = useState(new Animated.Value(1))[0];
+  
+  // Motivational quotes array with images - UPDATED QUOTES
+  const motivationalQuotes = [
+    { 
+      text: "Your blood brings a mother home, a friend back, a dream alive.", 
+      image: require('../assets/images/quote1.jpg'),
+      fallbackColor: '#F8D7DA'
+    },
+    { 
+      text: "Blood can’t be manufactured only heroes like you can provide it.", 
+      image: require('../assets/images/quote2.jpg'),
+      fallbackColor: '#FCE4EC'
+    },
+    { 
+      text: "Your kindness flows through someone's veins, giving them another day.", 
+      image: require('../assets/images/quote3.jpg'),
+      fallbackColor: '#F5F5F5'
+    },
+    { 
+      text: "Today you’re not just giving blood you’re giving hugs, smiles, and second chances.", 
+      image: require('../assets/images/quote4.jpg'),
+      fallbackColor: '#EDF2F7'
+    },
+    { 
+      text: "You are the unseen miracle behind a family's smile and tomorrow's hope.", 
+      image: require('../assets/images/quote5.jpg'),
+      fallbackColor: '#FFEBEE'
+    }
+  ];
+  
+  // Rotate quotes with smooth fade transition every 8 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Fade out
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 1000,
+        useNativeDriver: true
+      }).start(() => {
+        // Change quote index
+        setCurrentQuoteIndex(prevIndex => 
+          prevIndex === motivationalQuotes.length - 1 ? 0 : prevIndex + 1
+        );
+        
+        // Fade in
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true
+        }).start();
+      });
+    }, 4000);
+    
+    return () => clearInterval(interval);
+  }, []);
   
   // Generate calendar days
   const generateCalendarDays = () => {
@@ -53,6 +117,8 @@ export default function HomeScreen({ navigation }) {
     year: 'numeric' 
   });
 
+  const currentQuote = motivationalQuotes[currentQuoteIndex];
+
   return (
     <View style={styles.container}>
       {/* Header with Countdown */}
@@ -69,9 +135,9 @@ export default function HomeScreen({ navigation }) {
 
         {/* Top Right Icons */}
         <View style={styles.topRightIcons}>
-        <TouchableOpacity onPress={() => navigation.navigate('Chat')}>
-  <Feather name="message-square" size={20} color="white" />
-</TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Chat')}>
+            <Feather name="message-square" size={20} color="white" />
+          </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('Notification')}>
             <Feather name="bell" size={20} color="white" style={{ marginLeft: 12 }} />
@@ -86,16 +152,40 @@ export default function HomeScreen({ navigation }) {
       <View style={[styles.circleSmall, { top: 40, right: 80 }]} />
       <View style={[styles.circleMedium, { bottom: 20, left: 60 }]} />
 
-      {/* Calendar Section */}
-      <ScrollView style={styles.calendarContainer}>
-        <View style={styles.calendarCard}>
+      {/* Content Section */}
+      <ScrollView style={styles.scrollContainer}>
+        {/* Motivational Quote Card - ENHANCED WITH SMOOTH TRANSITION */}
+        <Animated.View 
+          style={[
+            styles.quoteCard, 
+            { 
+              backgroundColor: imageLoadError ? currentQuote.fallbackColor : 'transparent',
+              opacity: fadeAnim 
+            }
+          ]}
+        >
+          {!imageLoadError && (
+            <Image 
+              source={currentQuote.image}
+              style={styles.backgroundImage}
+              onError={() => setImageLoadError(true)}
+              resizeMode="cover"
+            />
+          )}
+          <View style={styles.quoteOverlay}>
+            <Text style={styles.quoteText}>"{currentQuote.text}"</Text>
+          </View>
+        </Animated.View>
+
+        {/* Calendar Section */}
+        <View style={styles.card}>
           <View style={styles.calendarHeader}>
             <TouchableOpacity onPress={() => changeMonth(-1)}>
-              <Feather name="chevron-left" size={24} color="#870D25" />
+              <Feather name="chevron-left" size={24} color="#D2042D" />
             </TouchableOpacity>
             <Text style={styles.monthYearText}>{monthYearString}</Text>
             <TouchableOpacity onPress={() => changeMonth(1)}>
-              <Feather name="chevron-right" size={24} color="#870D25" />
+              <Feather name="chevron-right" size={24} color="#D2042D" />
             </TouchableOpacity>
           </View>
 
@@ -114,9 +204,7 @@ export default function HomeScreen({ navigation }) {
                 style={[
                   styles.calendarDay,
                   item.empty ? styles.emptyDay : null,
-                  // Highlight current day - assuming the 15th is today
                   item.day === 15 ? styles.currentDay : null,
-                  // Mark donation days - example: marking the 20th as donation day
                   item.day === 20 ? styles.donationDay : null
                 ]}
                 disabled={item.empty}
@@ -134,7 +222,7 @@ export default function HomeScreen({ navigation }) {
 
           <View style={styles.legendContainer}>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, {backgroundColor: '#870D25'}]} />
+              <View style={[styles.legendDot, {backgroundColor: '#D2042D'}]} />
               <Text style={styles.legendText}>Donation Day</Text>
             </View>
             <View style={styles.legendItem}>
@@ -143,9 +231,15 @@ export default function HomeScreen({ navigation }) {
             </View>
           </View>
         </View>
+        
+        {/* Checklist Card */}
         <ChecklistCard />
+        
+        {/* Blood Type Chart */}
         <BloodTypeChart />
-
+        
+        {/* Extra padding at bottom for scroll */}
+        <View style={{ height: 20 }} />
       </ScrollView>
 
       {/* Bottom Tab Bar */}
@@ -178,7 +272,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   header: {
-    backgroundColor: '#870D25',
+    backgroundColor: '#D2042D',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     paddingTop: 60,
@@ -252,22 +346,64 @@ const styles = StyleSheet.create({
     right: 20,
     flexDirection: 'row',
   },
-  // Calendar styles
-  calendarContainer: {
+  // Scroll container
+  scrollContainer: {
     flex: 1,
     paddingHorizontal: 15,
   },
-  calendarCard: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 12,
-    marginVertical: 15,
+  // Quote card styles - IMPROVED STYLING
+  quoteCard: {
+    borderRadius: 16,
+    marginTop: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 3,
+    height: 150,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+  },
+  quoteOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    padding: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quoteText: {
+    fontSize: 19,
+    color: '#333',
+    fontWeight: '600',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    letterSpacing: 0.5,
+    lineHeight: 26,
+    textShadowColor: 'rgba(255, 255, 255, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    fontFamily: 'System',
+  },
+  // Card style for all cards
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 18,
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
     elevation: 3,
   },
+  // Calendar styles
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -313,7 +449,7 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
   donationDay: {
-    backgroundColor: '#870D25',
+    backgroundColor: '#D2042D',
     borderRadius: 50,
   },
   dayText: {
