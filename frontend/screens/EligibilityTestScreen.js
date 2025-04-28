@@ -2,60 +2,91 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 
 const questions = [
-  { id: 1, question: "Do you have any chronic disease?" },
-  { id: 2, question: "Did you get a tattoo in the last 6 months?" },
-  { id: 3, question: "Did you donate blood in the last 3 months?" },
+  { id: 1, question: "Do you have any transmittable disease?" },
+  { id: 2, question: "Do you suffer from Asthma?" },
+  { id: 3, question: "Have you had a Cardiac arrest?" },
+  { id: 4, question: "Do you have Hypertension?" },
+  { id: 5, question: "Do you have Blood pressure problems?" },
+  { id: 6, question: "Do you have Diabetes?" },
+  { id: 7, question: "Have you been diagnosed with Cancer?" },
 ];
 
-export default function EligibilityTestScreen({ route, navigation }) {
-  const { userData } = route.params;
+export default function EligibilityQ1({ navigation, route }) {
+  const { name, email, phone, address, password, confirmPassword } =
+    route.params;
 
   const [currentQ, setCurrentQ] = useState(0);
-  const [isValid, setIsValid] = useState(true);
+  const [isEligible, setIsEligible] = useState(true);
 
   const handleAnswer = (answer) => {
-    if (answer === "yes") {
-      setIsValid(false);
+    console.log(name);
+    if (answer === "Yes") {
+      setIsEligible(false);
     }
 
     if (currentQ + 1 < questions.length) {
       setCurrentQ(currentQ + 1);
     } else {
-      navigation.navigate("Result", {
-        isValid,
-        userData,
+      navigation.navigate("EligibilityQ4", {
+        userData: {
+          name,
+          email,
+          phone,
+          address,
+          password,
+          confirmPassword,
+        },
+        isValid: isEligible,
       });
     }
   };
 
+  const goToNextScreen = () => {
+    navigation.navigate("EligibilityQ4", {
+      userData: {
+        name,
+        email,
+        phone,
+        address,
+        password,
+        confirmPassword,
+      },
+      isValid: isEligible,
+    });
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Eligibility Test</Text>
+      {/* Donut header */}
+      <View style={styles.donutSolid}>
+        <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
+          <Text style={styles.navButton}>{"<"}</Text>
+        </TouchableOpacity>
 
-      {/* Progress Indicator */}
-      <Text style={styles.progressText}>
-        Question {currentQ + 1} of {questions.length}
-      </Text>
-
-      {/* Question Box */}
-      <View style={styles.questionBox}>
-        <Text style={styles.questionText}>{questions[currentQ].question}</Text>
+        <TouchableOpacity onPress={goToNextScreen}>
+          <Text style={styles.navButton}>{">"}</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Answer Buttons */}
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => handleAnswer("yes")}
-        >
-          <Text style={styles.buttonText}>Yes</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => handleAnswer("no")}
-        >
-          <Text style={styles.buttonText}>No</Text>
-        </TouchableOpacity>
+      {/* Card */}
+      <View style={styles.card}>
+        <Text style={styles.question}>{questions[currentQ].question}</Text>
+
+        {/* Answer Buttons */}
+        {["Yes", "No"].map((label) => (
+          <TouchableOpacity
+            key={label}
+            onPress={() => handleAnswer(label)}
+            style={styles.optionButton}
+          >
+            <Text style={styles.optionText}>{label}</Text>
+          </TouchableOpacity>
+        ))}
+
+        {/* Progress */}
+        <Text style={styles.progressText}>
+          Question {currentQ + 1} of {questions.length}
+        </Text>
       </View>
     </View>
   );
@@ -64,56 +95,69 @@ export default function EligibilityTestScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff5f5",
+    backgroundColor: "#FFF5F5",
     alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#d32f2f",
-    marginBottom: 10,
-  },
-  progressText: {
-    fontSize: 16,
-    color: "#888",
-    marginBottom: 20,
-  },
-  questionBox: {
-    backgroundColor: "#fff",
-    borderColor: "#d32f2f",
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 30,
+  donutSolid: {
     width: "100%",
-    minHeight: 150,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 30,
-    elevation: 3,
-  },
-  questionText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-    textAlign: "center",
-  },
-  buttonRow: {
+    height: 160,
+    backgroundColor: "#870D25",
+    borderBottomLeftRadius: 999,
+    borderBottomRightRadius: 999,
     flexDirection: "row",
     justifyContent: "space-between",
-    width: "100%",
+    alignItems: "flex-start",
+    paddingTop: 24,
+    paddingHorizontal: 16,
+    elevation: 8,
+    shadowColor: "#8B0000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
   },
-  button: {
-    backgroundColor: "#d32f2f",
-    padding: 14,
-    borderRadius: 10,
-    width: "45%",
+  navButton: {
+    fontSize: 24,
+    color: "white",
+    fontWeight: "bold",
   },
-  buttonText: {
-    color: "#fff",
+  card: {
+    marginTop: 30,
+    backgroundColor: "white",
+    borderRadius: 25,
+    padding: 24,
+    width: "88%",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  question: {
     fontSize: 18,
     fontWeight: "bold",
+    color: "#111",
+    marginBottom: 20,
     textAlign: "center",
+  },
+  optionButton: {
+    borderWidth: 1.5,
+    borderColor: "#D2042D",
+    borderRadius: 30,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginBottom: 15,
+    width: "100%",
+    backgroundColor: "rgba(210, 4, 45, 0.04)",
+  },
+  optionText: {
+    color: "#D2042D",
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  progressText: {
+    marginTop: 15,
+    fontSize: 14,
+    color: "#666",
   },
 });

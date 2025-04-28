@@ -5,90 +5,147 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Image,
-  Alert,
 } from "react-native";
 
-export default function RegisterDonorScreen({ navigation }) {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    phone: "",
-    address: "",
-  });
+export default function SignUpScreen({ navigation }) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const passwordsMatch = password === confirmPassword;
+
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
-  const handleNext = () => {
-    const { name, email, password, phone, address } = formData;
-    if (!name || !email || !password || !phone || !address) {
-      Alert.alert("Error", "Please fill all the fields");
-      return;
-    }
+  const isFormValid = () => {
+    return (
+      name.trim() !== "" &&
+      email.trim() !== "" &&
+      phone.trim() !== "" &&
+      address.trim() !== "" &&
+      password.trim() !== "" &&
+      confirmPassword.trim() !== "" &&
+      passwordsMatch &&
+      isValidEmail(email)
+    );
+  };
 
-    navigation.navigate("EligibilityTest", { userData: formData });
+  const handleSignUp = () => {
+    navigation.navigate("EligibilityQ1", {
+      name,
+      email,
+      phone,
+      address,
+      password,
+      confirmPassword,
+    });
   };
 
   return (
     <View style={styles.container}>
-      <Image
-        source={{
-          uri: "https://cdn-icons-png.flaticon.com/512/6772/6772262.png",
-        }}
-        style={styles.logo}
-      />
+      <View style={styles.card}>
+        <Text style={styles.title}>SIGN UP</Text>
 
-      <Text style={styles.title}>Donor Registration</Text>
+        <Text style={styles.inputLabel}>Enter Your Name</Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Your Name"
+          placeholderTextColor="#555"
+          style={styles.input}
+        />
 
-      <TextInput
-        placeholder="Name"
-        value={formData.name}
-        onChangeText={(val) => handleChange("name", val)}
-        style={styles.input}
-        placeholderTextColor="#aaa"
-      />
-      <TextInput
-        placeholder="Email"
-        value={formData.email}
-        onChangeText={(val) => handleChange("email", val)}
-        style={styles.input}
-        keyboardType="email-address"
-        placeholderTextColor="#aaa"
-      />
-      <TextInput
-        placeholder="Password"
-        secureTextEntry
-        value={formData.password}
-        onChangeText={(val) => handleChange("password", val)}
-        style={styles.input}
-        placeholderTextColor="#aaa"
-      />
-      <TextInput
-        placeholder="Phone Number"
-        value={formData.phone}
-        onChangeText={(val) => handleChange("phone", val)}
-        style={styles.input}
-        keyboardType="phone-pad"
-        placeholderTextColor="#aaa"
-      />
-      <TextInput
-        placeholder="Address"
-        value={formData.address}
-        onChangeText={(val) => handleChange("address", val)}
-        style={styles.input}
-        placeholderTextColor="#aaa"
-      />
+        <Text style={styles.inputLabel}>Enter Your Email</Text>
+        <TextInput
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Your Email"
+          placeholderTextColor="#555"
+          style={styles.input}
+          keyboardType="email-address"
+        />
 
-      <TouchableOpacity style={styles.button} onPress={handleNext}>
-        <Text style={styles.buttonText}>Take Eligibility Test</Text>
-      </TouchableOpacity>
+        <Text style={styles.inputLabel}>Enter Your Phone Number</Text>
+        <TextInput
+          value={phone}
+          onChangeText={setPhone}
+          placeholder="Phone Number"
+          placeholderTextColor="#555"
+          style={styles.input}
+          keyboardType="phone-pad"
+        />
 
-      <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-        <Text style={styles.linkText}>Already have an account? Login</Text>
-      </TouchableOpacity>
+        <Text style={styles.inputLabel}>Enter Your Address</Text>
+        <TextInput
+          value={address}
+          onChangeText={setAddress}
+          placeholder="Your Address"
+          placeholderTextColor="#555"
+          style={styles.input}
+        />
+
+        <Text style={styles.inputLabel}>Password</Text>
+        <TextInput
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          placeholder="Password"
+          placeholderTextColor="#555"
+          style={styles.input}
+        />
+
+        <Text style={styles.inputLabel}>Confirm Password</Text>
+        <TextInput
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+          placeholder="Confirm Password"
+          placeholderTextColor="#555"
+          style={styles.input}
+        />
+
+        {/* Validation messages */}
+        {!passwordsMatch && (
+          <Text style={{ color: "yellow", marginBottom: 10 }}>
+            Passwords do not match
+          </Text>
+        )}
+        {email && !isValidEmail(email) && (
+          <Text style={{ color: "yellow", marginBottom: 10 }}>
+            Invalid email format
+          </Text>
+        )}
+        {!isFormValid() && (
+          <Text style={{ color: "yellow", marginBottom: 10 }}>
+            Please fill all fields correctly
+          </Text>
+        )}
+
+        <TouchableOpacity
+          style={styles.button}
+          disabled={!isFormValid()}
+          onPress={handleSignUp}
+        >
+          <Text style={styles.buttonText}>Take Eligibility Test</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+          <Text
+            style={{
+              color: "#fff",
+              textDecorationLine: "underline",
+              marginTop: 15,
+            }}
+          >
+            Already have an account? Log In
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -96,49 +153,56 @@ export default function RegisterDonorScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff5f5",
     padding: 20,
   },
-  logo: {
-    width: 80,
-    height: 80,
-    marginBottom: 20,
+  card: {
+    backgroundColor: "#870D25",
+    borderRadius: 25,
+    padding: 30,
+    width: "100%",
+    maxWidth: 350,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
   },
   title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#d32f2f",
-    marginBottom: 20,
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "200",
+    marginBottom: 30,
+  },
+  inputLabel: {
+    color: "#fff",
+    alignSelf: "flex-start",
+    marginBottom: 8,
+    fontWeight: "200",
   },
   input: {
+    backgroundColor: "#e0e0e0",
     width: "100%",
+    borderRadius: 20,
     padding: 12,
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: "#d32f2f",
-    borderRadius: 8,
-    backgroundColor: "#fff",
-    color: "#333",
+    marginBottom: 20,
   },
   button: {
-    backgroundColor: "#d32f2f",
-    padding: 12,
-    borderRadius: 8,
-    width: "100%",
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
     marginTop: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 8, // for Android
   },
   buttonText: {
     color: "#fff",
-    fontSize: 18,
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-  linkText: {
-    marginTop: 15,
-    color: "#d32f2f",
-    fontSize: 16,
-    fontWeight: "bold",
   },
 });

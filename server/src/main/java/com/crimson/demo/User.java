@@ -1,14 +1,39 @@
 package com.crimson.demo;
 
-public class UserRegisterRequest {
+public class User {
+    private String userId;
     private String name;
     private String email;
-    private String password;  // Added Password
+    private String password;
     private String phone;
     private String address;
     private boolean eligibilityStatus;
 
+    public User() {
+        // This is needed for Firestore to create an empty instance
+    }
+
+    // Constructor
+    public User(String userId, String name, String email, String password, String phone, String address,
+            boolean eligibilityStatus) {
+        this.userId = userId;
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.phone = phone;
+        this.address = address;
+        this.eligibilityStatus = eligibilityStatus;
+    }
+
     // Getters and Setters
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
     public String getName() {
         return name;
     }
@@ -49,7 +74,7 @@ public class UserRegisterRequest {
         this.address = address;
     }
 
-    public boolean getEligibilityStatus() {
+    public boolean isEligibilityStatus() {
         return eligibilityStatus;
     }
 
