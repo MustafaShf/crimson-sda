@@ -12,6 +12,8 @@ import {
 import { Feather } from "@expo/vector-icons";
 import RNPickerSelect from "react-native-picker-select";
 import { UserContext } from "../context/userContext";
+import Constants from "expo-constants";
+const { LOCALLINK } = Constants.expoConfig.extra;
 
 export default function DonateScreen({ navigation }) {
   const [formData, setFormData] = useState({
@@ -65,7 +67,7 @@ export default function DonateScreen({ navigation }) {
 
     try {
       const response = await fetch(
-        "http://192.168.1.65:8080/api/donations/create",
+        `http://${LOCALLINK}:8080/api/donations/create`,
         {
           method: "POST",
           headers: {

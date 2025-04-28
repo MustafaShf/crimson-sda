@@ -14,6 +14,8 @@ import {
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import { UserContext } from "../context/userContext";
+import Constants from "expo-constants";
+const { LOCALLINK } = Constants.expoConfig.extra;
 
 export default function LeaderboardScreen({ navigation }) {
   const [leaderboardData, setLeaderboardData] = useState([]); // State to hold leaderboard data
@@ -25,7 +27,7 @@ export default function LeaderboardScreen({ navigation }) {
     const fetchLeaderboardData = async () => {
       try {
         const response = await fetch(
-          "http://192.168.1.65:8080/api/donations/leaderboard"
+          `http://${LOCALLINK}:8080/api/donations/leaderboard`
         );
         const data = await response.json();
 

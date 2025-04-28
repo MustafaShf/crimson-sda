@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { UserContext } from "../context/userContext"; // ✅ Make sure path is correct
-
+import Constants from 'expo-constants';
+const { LOCALLINK } = Constants.expoConfig.extra;
 export default function LoginScreen({ navigation }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -24,7 +25,7 @@ export default function LoginScreen({ navigation }) {
     }
 
     try {
-      const response = await fetch(`http://192.168.1.65:8080/api/users/login`, {
+      const response = await fetch(`http://${LOCALLINK}:8080/api/users/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

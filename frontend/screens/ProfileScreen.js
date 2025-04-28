@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { UserContext } from "../context/userContext";
+import Constants from "expo-constants";
+const { LOCALLINK } = Constants.expoConfig.extra;
 
 export default function ProfileScreen({ navigation, route }) {
   const { user, setUser } = useContext(UserContext);
@@ -30,7 +32,7 @@ export default function ProfileScreen({ navigation, route }) {
     const fetchDonationDetails = async () => {
       try {
         const response = await fetch(
-          "http://192.168.1.65:8080/api/find-donors/user-details",
+          `http://${LOCALLINK}:8080/api/find-donors/user-details`,
           {
             method: "POST",
             headers: {
@@ -63,8 +65,6 @@ export default function ProfileScreen({ navigation, route }) {
       fetchDonationDetails();
     }
   }, [userId]);
-
-  
 
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [

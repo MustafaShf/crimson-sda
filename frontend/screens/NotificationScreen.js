@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { UserContext } from "../context/userContext";
+import Constants from "expo-constants";
+const { LOCALLINK } = Constants.expoConfig.extra;
 
 export default function NotificationScreen({ navigation }) {
   const [tab, setTab] = useState("received");
@@ -23,7 +25,7 @@ export default function NotificationScreen({ navigation }) {
       if (!userId) return;
       try {
         const response = await fetch(
-          "http://192.168.1.65:8080/api/receivedrequests/get",
+          `http://${LOCALLINK}:8080/api/receivedrequests/get`,
           {
             method: "POST",
             headers: {
@@ -65,7 +67,7 @@ export default function NotificationScreen({ navigation }) {
       try {
         setLoading(true);
         const response = await fetch(
-          "http://192.168.1.65:8080/api/myrequests/get",
+          `http://${LOCALLINK}:8080/api/myrequests/get`,
           {
             method: "POST",
             headers: {

@@ -18,19 +18,20 @@ import {
 } from "@expo/vector-icons";
 import { UserContext } from "../context/userContext";
 import { useFocusEffect } from "@react-navigation/native";
+import Constants from "expo-constants";
+const { LOCALLINK } = Constants.expoConfig.extra;
 
 const DonorCard = ({ donor, setDonors, setFilteredDonors }) => {
-
   const { user } = useContext(UserContext);
   const { userId } = user || {};
 
   const handleRequestBlood = async () => {
     console.log("Donor info before request:", donor);
     console.log("User ID requesting:", userId);
-  
+
     try {
       const response = await fetch(
-        "http://192.168.1.65:8080/api/requests/create",
+        `http://${LOCALLINK}:8080/api/requests/create`,
         {
           method: "POST",
           headers: {
@@ -47,20 +48,19 @@ const DonorCard = ({ donor, setDonors, setFilteredDonors }) => {
           }),
         }
       );
-  
+
       const result = await response.json();
       if (response.ok) {
         console.log("Request created successfully:", result.message);
-  
+
         // Remove the donor from both donors and filteredDonors
         setDonors((prevDonors) =>
           prevDonors.filter((d) => d.userId !== donor.userId)
         );
-  
+
         setFilteredDonors((prevFilteredDonors) =>
           prevFilteredDonors.filter((d) => d.userId !== donor.userId)
         );
-        
       } else {
         console.error("Error creating request:", result.message);
       }
@@ -68,7 +68,6 @@ const DonorCard = ({ donor, setDonors, setFilteredDonors }) => {
       console.error("Error:", error);
     }
   };
-  
 
   return (
     <View style={styles.donorCard}>
@@ -143,10 +142,9 @@ const FindDonorScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const validBloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
-
   // Fetch donors when the component is mounted
   useEffect(() => {
-    fetch("http://192.168.1.65:8080/api/find-donors/search", {
+    fetch(`http://${LOCALLINK}:8080/api/find-donors/search`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -178,7 +176,7 @@ const FindDonorScreen = ({ navigation }) => {
   const handleSearch = () => {
     if (selectedBloodGroup) {
       const filteredData = donors.filter(
-        (donor) => donor.bloodgroup === (selectedBloodGroup+'+')
+        (donor) => donor.bloodgroup === selectedBloodGroup + "+"
       );
       setFilteredDonors(filteredData);
     } else {
@@ -233,7 +231,11 @@ const FindDonorScreen = ({ navigation }) => {
             data={filteredDonors} // Use the filtered donors for the list
             keyExtractor={(item) => item.userId.toString()}
             renderItem={({ item }) => (
-              <DonorCard donor={item} setDonors={setDonors} setFilteredDonors={setFilteredDonors} />
+              <DonorCard
+                donor={item}
+                setDonors={setDonors}
+                setFilteredDonors={setFilteredDonors}
+              />
             )}
             contentContainerStyle={styles.donorsList}
             showsVerticalScrollIndicator={false}

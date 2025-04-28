@@ -1,6 +1,8 @@
 import React, { useEffect } from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import Toast from "react-native-toast-message";
+import Constants from 'expo-constants';
+const { LOCALLINK } = Constants.expoConfig.extra;
 
 export default function ResultScreen({ navigation, route }) {
   const { userData, isValid } = route.params;
@@ -19,7 +21,7 @@ export default function ResultScreen({ navigation, route }) {
       };
   
       try {
-        const response = await fetch("http://192.168.1.65:8080/api/users/register", {
+        const response = await fetch(`http://${LOCALLINK}:8080/api/users/register`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
