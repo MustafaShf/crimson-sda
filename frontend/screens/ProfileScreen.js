@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -13,21 +13,58 @@ import { Feather } from "@expo/vector-icons";
 import { UserContext } from "../context/userContext";
 
 export default function ProfileScreen({ navigation, route }) {
-  // const { name, email } = route.params;
-  const { user } = useContext(UserContext);
-  const { name, email, phone, address, eligibilityStatus } = user || {};
+  const { user, setUser } = useContext(UserContext);
+  const { userId, name, email, phone, address, eligibilityStatus } = user || {};
 
   const [modalVisible, setModalVisible] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
 
-  const userData = {
+  const [userData, setUserData] = useState({
     name: name,
     email: email,
-    donationsCount: 3,
-    bloodType: "A+",
-  };
+    donationsCount: 0,
+    bloodType: "NA",
+  });
 
-  const { setUser } = useContext(UserContext);
+  useEffect(() => {
+    const fetchDonationDetails = async () => {
+      try {
+        const response = await fetch(
+          "http://192.168.1.65:8080/api/find-donors/user-details",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ userId }), // Sending userId in body
+          }
+        );
+
+        const text = await response.text();
+
+        if (text) {
+          const data = JSON.parse(text);
+
+          setUserData((prev) => ({
+            ...prev,
+            donationsCount: data.unitsToDonate || 0,
+            bloodType: data.bloodgroup || "NA",
+          }));
+        } else {
+          // If response is empty, keep default values
+          console.log("No donation data found. Setting defaults.");
+        }
+      } catch (error) {
+        console.error("Error fetching donation details:", error);
+      }
+    };
+
+    if (userId) {
+      fetchDonationDetails();
+    }
+  }, [userId]);
+
+  
 
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [

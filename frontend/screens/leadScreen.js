@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -13,20 +13,12 @@ import {
   MaterialIcons,
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
-
-const currentUser = {
-  rank: 12,
-  name: "Zainab Ahmed",
-  location: "Lahore, PK",
-  image: "https://randomuser.me/api/portraits/women/28.jpg",
-  donations: 5,
-  lastDonation: "1 month ago",
-};
+import { UserContext } from "../context/userContext";
 
 export default function LeaderboardScreen({ navigation }) {
-  const [activeTab, setActiveTab] = useState("monthly"); // 'monthly', 'yearly', 'allTime'
-  const [filterRegion, setFilterRegion] = useState("all"); // 'all', 'city', 'country'
   const [leaderboardData, setLeaderboardData] = useState([]); // State to hold leaderboard data
+  const { user } = useContext(UserContext);
+  const { name } = user || {};
 
   useEffect(() => {
     // Fetch leaderboard data on component mount
@@ -37,14 +29,22 @@ export default function LeaderboardScreen({ navigation }) {
         );
         const data = await response.json();
 
-        // Update each user with a random image from randomuser.me
-        const updatedData = data.map((user, index) => ({
+        // Sort the data based on totalDonated in descending order
+        const sortedData = data.sort((a, b) => b.totalDonated - a.totalDonated);
+
+        // Find your position based on the name and donations
+        const updatedData = sortedData.map((user, index) => ({
           ...user,
-          image: `https://randomuser.me/api/portraits/men/${Math.floor(
-            Math.random() * 100
-          )}.jpg`, // Random image for each user
+          rank: index + 1, // Assign rank based on sorted order
         }));
-        console.log(updatedData);
+
+        // Find the current user and their rank
+        const currentUser = updatedData.find((user) => user.name === name);
+        if (currentUser) {
+          // Update the rank and donations for the current user
+          currentUser.rank = updatedData.indexOf(currentUser) + 1;
+        }
+
         setLeaderboardData(updatedData); // Update state with fetched and updated data
       } catch (error) {
         console.error("Error fetching leaderboard data:", error);
@@ -52,46 +52,22 @@ export default function LeaderboardScreen({ navigation }) {
     };
 
     fetchLeaderboardData(); // Call the function to fetch the leaderboard data
-  }, []);
-
-  const getTabTitle = (tab) => {
-    switch (tab) {
-      case "monthly":
-        return "This Month";
-      case "yearly":
-        return "This Year";
-      case "allTime":
-        return "All Time";
-      default:
-        return "This Month";
-    }
-  };
+  }, [name]);
 
   const renderTopDonors = () => {
     // Only show top 3 in special podium view
     const topThree = leaderboardData.slice(0, 3);
-    console.log("this is ", topThree);
     return (
       <View style={styles.podiumContainer}>
-        {/* 2nd Place */}
-        <View style={styles.podiumItem}>
-          <Image
-            source={{ uri: topThree[1]?.image }}
-            style={styles.podiumAvatar}
-          />
-          <View style={[styles.podium, styles.podiumSecond]}>
-            <Text style={styles.podiumRank}>2</Text>
-          </View>
-          <Text style={styles.podiumName}>{topThree[1]?.name}</Text>
-          <Text style={styles.podiumDonations}>
-            {topThree[1]?.totalDonated} donations
-          </Text>
-        </View>
-
+        {/* 1st Place */}
         {/* 1st Place */}
         <View style={styles.podiumItem}>
           <Image
-            source={{ uri: topThree[0]?.image }}
+            source={{
+              uri: `https://randomuser.me/api/portraits/men/${
+                topThree[0]?.rank || Math.floor(Math.random() * 100)
+              }.jpg`,
+            }}
             style={[styles.podiumAvatar, styles.podiumFirstAvatar]}
           />
           <View style={[styles.podium, styles.podiumFirst]}>
@@ -108,10 +84,33 @@ export default function LeaderboardScreen({ navigation }) {
           </View>
         </View>
 
+        {/* 2nd Place */}
+        <View style={styles.podiumItem}>
+          <Image
+            source={{
+              uri: `https://randomuser.me/api/portraits/men/${
+                topThree[1]?.rank || Math.floor(Math.random() * 100)
+              }.jpg`,
+            }}
+            style={styles.podiumAvatar}
+          />
+          <View style={[styles.podium, styles.podiumSecond]}>
+            <Text style={styles.podiumRank}>2</Text>
+          </View>
+          <Text style={styles.podiumName}>{topThree[1]?.name}</Text>
+          <Text style={styles.podiumDonations}>
+            {topThree[1]?.totalDonated} donations
+          </Text>
+        </View>
+
         {/* 3rd Place */}
         <View style={styles.podiumItem}>
           <Image
-            source={{ uri: topThree[2]?.image }}
+            source={{
+              uri: `https://randomuser.me/api/portraits/men/${
+                topThree[2]?.rank || Math.floor(Math.random() * 100)
+              }.jpg`,
+            }}
             style={styles.podiumAvatar}
           />
           <View style={[styles.podium, styles.podiumThird]}>
@@ -146,60 +145,23 @@ export default function LeaderboardScreen({ navigation }) {
           <Feather name="arrow-left" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Donation Leaders</Text>
-
-        <View style={styles.tabs}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "monthly" && styles.activeTab]}
-            onPress={() => setActiveTab("monthly")}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "monthly" && styles.activeTabText,
-              ]}
-            >
-              Monthly
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "yearly" && styles.activeTab]}
-            onPress={() => setActiveTab("yearly")}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "yearly" && styles.activeTabText,
-              ]}
-            >
-              Yearly
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "allTime" && styles.activeTab]}
-            onPress={() => setActiveTab("allTime")}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "allTime" && styles.activeTabText,
-              ]}
-            >
-              All Time
-            </Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
       {/* Current user rank highlight */}
       <View style={styles.userRankCard}>
         <View style={styles.userRankInfo}>
-          <Text style={styles.userRankTitle}>Your Current Rank</Text>
-          <Text style={styles.userRank}>#{currentUser.rank}</Text>
+          <Text style={styles.userRankTitle}>Your Rank</Text>
+          <Text style={styles.userRank}>
+            #{leaderboardData.find((user) => user.name === name)?.rank || "N/A"}
+          </Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.userDonationInfo}>
           <Text style={styles.userDonationTitle}>Your Donations</Text>
-          <Text style={styles.userDonations}>{currentUser.donations}</Text>
+          <Text style={styles.userDonations}>
+            {leaderboardData.find((user) => user.name === name)?.totalDonated ||
+              0}
+          </Text>
         </View>
         <View style={styles.divider} />
         <TouchableOpacity style={styles.showMeButton}>
@@ -211,16 +173,6 @@ export default function LeaderboardScreen({ navigation }) {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.filterContainer}>
-          <Text style={styles.leaderboardTitle}>
-            {getTabTitle(activeTab)} Leaders
-          </Text>
-          <TouchableOpacity style={styles.filterButton}>
-            <Feather name="filter" size={18} color="#870D25" />
-            <Text style={styles.filterText}>Filter</Text>
-          </TouchableOpacity>
-        </View>
-
         {renderTopDonors()}
 
         <View style={styles.listContainer}>
@@ -228,7 +180,14 @@ export default function LeaderboardScreen({ navigation }) {
           {leaderboardData.slice(3).map((item, index) => (
             <View key={index} style={styles.card}>
               <Text style={styles.rank}>#{item.rank}</Text>
-              <Image source={{ uri: item.image }} style={styles.avatar} />
+              <Image
+                source={{
+                  uri: `https://randomuser.me/api/portraits/men/${
+                    item.rank || Math.floor(Math.random() * 100)
+                  }.jpg`,
+                }}
+                style={styles.avatar}
+              />
               <View style={styles.info}>
                 <Text style={styles.name}>{item.name}</Text>
                 <View style={styles.locationContainer}>

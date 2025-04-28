@@ -3,6 +3,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Toast from "react-native-toast-message";
 import { UserProvider } from "./context/userContext";
+import { UserBloodGroupProvider } from "./context/UserBloodGroupContext";
 
 import LoginScreen from "./screens/LoginScreen";
 import SignUpScreen from "./screens/RegisterScreen";
@@ -21,28 +22,30 @@ const Stack = createNativeStackNavigator();
 export default function App() {
   return (
     <UserProvider>
-      {" "}
-      {/* 👈 Wrap everything in UserProvider */}
-      <NavigationContainer>
-        <Stack.Navigator
-          initialRouteName="Login"
-          screenOptions={{ headerShown: false }}
-        >
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="SignUp" component={SignUpScreen} />
-          <Stack.Screen name="EligibilityQ1" component={EligibilityQ1} />
-          <Stack.Screen name="EligibilityQ2" component={EligibilityQ2} />
-          <Stack.Screen name="EligibilityQ3" component={EligibilityQ3} />
-          <Stack.Screen name="EligibilityQ4" component={EligibilityQ4} />
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="FindDonor" component={FindDonorScreen} />
-          <Stack.Screen name="Request" component={RequestScreen} />
-          <Stack.Screen name="Profile" component={ProfileScreen} />
-          <Stack.Screen name="Notification" component={NotificationScreen} />
-          <Stack.Screen name="leadBoard" component={LeaderboardScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-      <Toast />
+      <UserBloodGroupProvider>
+        {" "}
+        {/* 👈 Wrap inside UserProvider */}
+        <NavigationContainer>
+          <Stack.Navigator
+            initialRouteName="Login"
+            screenOptions={{ headerShown: false }}
+          >
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="SignUp" component={SignUpScreen} />
+            <Stack.Screen name="EligibilityQ1" component={EligibilityQ1} />
+            <Stack.Screen name="EligibilityQ2" component={EligibilityQ2} />
+            <Stack.Screen name="EligibilityQ3" component={EligibilityQ3} />
+            <Stack.Screen name="EligibilityQ4" component={EligibilityQ4} />
+            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="FindDonor" component={FindDonorScreen} />
+            <Stack.Screen name="Request" component={RequestScreen} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="Notification" component={NotificationScreen} />
+            <Stack.Screen name="leadBoard" component={LeaderboardScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+        <Toast />
+      </UserBloodGroupProvider>
     </UserProvider>
   );
 }

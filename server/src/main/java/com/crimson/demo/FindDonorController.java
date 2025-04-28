@@ -49,4 +49,31 @@ public class FindDonorController {
             return ResponseEntity.status(500).body("{\"message\": \"Error fetching donors\"}");
         }
     }
+
+    // New endpoint: Get donation by specific userId
+    @PostMapping("/user-details")
+    public ResponseEntity<?> findUserDonation(@RequestBody FindDonorRequest request) {
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+
+            // Fetch all donations
+            ApiFuture<QuerySnapshot> future = db.collection("donations")
+                                                .whereEqualTo("userId", request.getUserId())
+                                                .get();
+            QuerySnapshot querySnapshot = future.get();
+
+            if (!querySnapshot.isEmpty()) {
+                // If user donation exists
+                Donation donation = querySnapshot.getDocuments().get(0).toObject(Donation.class);
+                return ResponseEntity.ok(donation);
+            } else {
+                // No donation found for this user
+                return ResponseEntity.ok(null);
+            }
+
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("{\"message\": \"Error fetching user donation\"}");
+        }
+    }
 }

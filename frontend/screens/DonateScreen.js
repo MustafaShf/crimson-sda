@@ -24,7 +24,7 @@ export default function DonateScreen({ navigation }) {
   });
 
   const { user } = useContext(UserContext);
-  const { phone, eligibilityStatus, userId } = user || {};
+  const { name, phone, eligibilityStatus, userId } = user || {};
 
   const handleChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -120,12 +120,16 @@ export default function DonateScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.formContainer}>
           {/* Name */}
           <Text style={styles.label}>Full Name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your full name"
-            value={formData.name}
-            onChangeText={(text) => handleChange("name", text)}
-          />
+          {user ? (
+            <Text style={styles.input}>{name}</Text> // Display the name from userContext
+          ) : (
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your full name"
+              value={formData.name}
+              onChangeText={(text) => handleChange("name", text)}
+            />
+          )}
 
           {/* Age */}
           <Text style={styles.label}>Age</Text>
