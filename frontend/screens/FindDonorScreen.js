@@ -19,14 +19,15 @@ import {
 import { UserContext } from "../context/userContext";
 import { useFocusEffect } from "@react-navigation/native";
 
-const DonorCard = ({ donor, setDonors }) => {
+const DonorCard = ({ donor, setDonors, setFilteredDonors }) => {
+
   const { user } = useContext(UserContext);
   const { userId } = user || {};
 
   const handleRequestBlood = async () => {
     console.log("Donor info before request:", donor);
     console.log("User ID requesting:", userId);
-
+  
     try {
       const response = await fetch(
         "http://192.168.1.65:8080/api/requests/create",
@@ -36,9 +37,9 @@ const DonorCard = ({ donor, setDonors }) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            requesterId: userId, // User requesting the blood
-            donorId: donor.userId, // Donor's user ID
-            name: donor.fullname, // You can send additional donor info if needed
+            requesterId: userId,
+            donorId: donor.userId,
+            name: donor.fullname,
             gender: donor.gender,
             bloodGroup: donor.bloodgroup,
             status: "pending",
@@ -46,15 +47,20 @@ const DonorCard = ({ donor, setDonors }) => {
           }),
         }
       );
-
+  
       const result = await response.json();
       if (response.ok) {
         console.log("Request created successfully:", result.message);
-
-        // Update the donor list on the frontend by setting the `requested` field to true
+  
+        // Remove the donor from both donors and filteredDonors
         setDonors((prevDonors) =>
           prevDonors.filter((d) => d.userId !== donor.userId)
         );
+  
+        setFilteredDonors((prevFilteredDonors) =>
+          prevFilteredDonors.filter((d) => d.userId !== donor.userId)
+        );
+        
       } else {
         console.error("Error creating request:", result.message);
       }
@@ -62,6 +68,7 @@ const DonorCard = ({ donor, setDonors }) => {
       console.error("Error:", error);
     }
   };
+  
 
   return (
     <View style={styles.donorCard}>
@@ -132,78 +139,51 @@ const FindDonorScreen = ({ navigation }) => {
   const { userId } = user || {};
   const [selectedBloodGroup, setSelectedBloodGroup] = useState("");
   const [donors, setDonors] = useState([]);
+  const [filteredDonors, setFilteredDonors] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const validBloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
-  // useEffect(() => {
 
-  //   // Replace with the appropriate URL
-  //   fetch("http://192.168.1.65:8080/api/find-donors/search", {
-  //     method: "POST", // Change to POST method if required
-  //     headers: {
-  //       "Content-Type": "application/json",
-  //     },
-  //     body: JSON.stringify({
-  //       // Pass any necessary data in the request body (for example, blood group)
-  //       userId: userId,
-  //       bloodGroup: selectedBloodGroup,
-  //     }),
-  //   })
-  //     .then((response) => response.json())
-  //     .then((data) => {
-  //       console.log(data);
-  //       // Map the fetched data toa ensure that timeLimit and distance are present
-  //       const donorsWithDefaults = data
-  //         .filter((donor) => donor.requested === false) // Only keep donors where request is false
-  //         .map((donor) => ({
-  //           ...donor,
-  //           timeLimit: donor.timeLimit || "0",
-  //           distance: donor.distance || "0",
-  //         }));
+  // Fetch donors when the component is mounted
+  useEffect(() => {
+    fetch("http://192.168.1.65:8080/api/find-donors/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: userId,
+        bloodGroup: selectedBloodGroup, // pass the selected blood group
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        const donorsWithDefaults = data
+          .filter((donor) => donor.requested === false)
+          .map((donor) => ({
+            ...donor,
+            timeLimit: donor.timeLimit || "0",
+            distance: donor.distance || "0",
+          }));
 
-  //       setDonors(donorsWithDefaults);
-
-  //       setIsLoading(false);
-  //     })
-  //     .catch((error) => {
-  //       console.error("Error fetching donors:", error);
-  //       setIsLoading(false);
-  //     });
-  // }, [selectedBloodGroup]);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      // Your fetch code here...
-      fetch("http://192.168.1.65:8080/api/find-donors/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: userId,
-          bloodGroup: selectedBloodGroup,
-        }),
+        setDonors(donorsWithDefaults);
+        setFilteredDonors(donorsWithDefaults); // Initially set filtered donors to all fetched donors
+        setIsLoading(false);
       })
-        .then((response) => response.json())
-        .then((data) => {
-          const donorsWithDefaults = data
-            .filter((donor) => donor.requested === false)
-            .map((donor) => ({
-              ...donor,
-              timeLimit: donor.timeLimit || "0",
-              distance: donor.distance || "0",
-            }));
+      .catch((error) => {
+        console.error("Error fetching donors:", error);
+        setIsLoading(false);
+      });
+  }, [userId]);
 
-          setDonors(donorsWithDefaults);
-          setIsLoading(false);
-        })
-        .catch((error) => {
-          console.error("Error fetching donors:", error);
-          setIsLoading(false);
-        });
-    }, [selectedBloodGroup, userId])
-  );
-
+  // Handle the search button
   const handleSearch = () => {
-    // You can add search logic here if you want to filter the donors by blood group
-    console.log("Searching for donors with blood group:", selectedBloodGroup);
+    if (selectedBloodGroup) {
+      const filteredData = donors.filter(
+        (donor) => donor.bloodgroup === (selectedBloodGroup+'+')
+      );
+      setFilteredDonors(filteredData);
+    } else {
+      setFilteredDonors(donors); // If no blood group selected, show all donors
+    }
   };
 
   return (
@@ -214,17 +194,6 @@ const FindDonorScreen = ({ navigation }) => {
         <Text style={styles.headerTitle}>Find Donor</Text>
         <Text style={styles.headerSubtitle}>Blood donors around you</Text>
 
-        {/* Top Right Icons */}
-        <View style={styles.topRightIcons}>
-          <Feather name="message-square" size={20} color="white" />
-          <Feather
-            name="bell"
-            size={20}
-            color="white"
-            style={{ marginLeft: 12 }}
-          />
-        </View>
-
         <View style={styles.filterSection}>
           <Text style={styles.filterTitle}>Choose Blood group</Text>
           <View style={styles.selectContainer}>
@@ -232,7 +201,7 @@ const FindDonorScreen = ({ navigation }) => {
               style={styles.selectInput}
               placeholder="Select"
               value={selectedBloodGroup}
-              editable={false}
+              onChangeText={(text) => setSelectedBloodGroup(text.toUpperCase())} // Update the selectedBloodGroup state
             />
             <MaterialIcons
               name="arrow-drop-down"
@@ -253,7 +222,7 @@ const FindDonorScreen = ({ navigation }) => {
         <View style={styles.resultsHeader}>
           <Ionicons name="people" size={16} color="#666" />
           <Text style={styles.resultsText}>
-            Found {donors.length} donors around you
+            Found {filteredDonors.length} donors around you
           </Text>
         </View>
 
@@ -261,10 +230,10 @@ const FindDonorScreen = ({ navigation }) => {
           <Text>Loading donors...</Text>
         ) : (
           <FlatList
-            data={donors}
-            keyExtractor={(item) => item.userId.toString()} // <- Fix here
+            data={filteredDonors} // Use the filtered donors for the list
+            keyExtractor={(item) => item.userId.toString()}
             renderItem={({ item }) => (
-              <DonorCard donor={item} setDonors={setDonors} />
+              <DonorCard donor={item} setDonors={setDonors} setFilteredDonors={setFilteredDonors} />
             )}
             contentContainerStyle={styles.donorsList}
             showsVerticalScrollIndicator={false}
@@ -272,7 +241,6 @@ const FindDonorScreen = ({ navigation }) => {
         )}
       </View>
 
-      {/* Bottom Tab Bar - Styled to match HomeScreen */}
       <View style={styles.tabBar}>
         <TouchableOpacity
           style={styles.tabItem}

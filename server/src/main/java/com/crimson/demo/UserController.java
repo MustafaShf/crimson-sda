@@ -5,6 +5,8 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QuerySnapshot;
@@ -114,4 +116,40 @@ public class UserController {
             return ResponseEntity.status(500).body("{\"message\": \"Error during registration\"}");
         }
     }
+
+    // Get User Info by userId
+    @GetMapping("/{userId}")
+    public ResponseEntity<String> getUserById(@PathVariable String userId) {
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+
+            // Fetch the document using userId
+            DocumentSnapshot document = db.collection("users").document(userId).get().get();
+
+            if (document.exists()) {
+                User user = document.toObject(User.class);
+
+                if (user != null) {
+                    String responseJson = String.format(
+                            "{\"userId\": \"%s\", \"name\": \"%s\", \"email\": \"%s\", \"phone\": \"%s\", \"address\": \"%s\", \"eligibilityStatus\": %b}",
+                            user.getUserId(),
+                            user.getName(),
+                            user.getEmail(),
+                            user.getPhone(),
+                            user.getAddress(),
+                            user.isEligibilityStatus());
+                    return ResponseEntity.ok(responseJson);
+                } else {
+                    return ResponseEntity.status(404).body("{\"message\": \"User data is corrupted\"}");
+                }
+            } else {
+                return ResponseEntity.status(404).body("{\"message\": \"User not found\"}");
+            }
+
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("{\"message\": \"Error fetching user\"}");
+        }
+    }
+
 }

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.firebase.cloud.FirestoreClient;
 import com.google.cloud.firestore.QuerySnapshot;
@@ -49,12 +50,25 @@ public class ReceivedRequestController {
 
             QuerySnapshot querySnapshot = future.get();
 
-            List<Map<String, Object>> requestList = new ArrayList<>();
+            List<Map<String, Object>> requesterDetailsList = new ArrayList<>();
+
             for (QueryDocumentSnapshot document : querySnapshot.getDocuments()) {
-                requestList.add(document.getData());
+                String requesterId = document.getString("requesterId");
+
+                if (requesterId != null) {
+                    // Now fetch the user document based on requesterId
+                    DocumentSnapshot requesterDoc = db.collection("users").document(requesterId).get().get();
+
+                    if (requesterDoc.exists()) {
+                        Map<String, Object> requesterData = requesterDoc.getData();
+                        requesterDetailsList.add(requesterData);
+                    } else {
+                        System.out.println("Requester with ID " + requesterId + " not found.");
+                    }
+                }
             }
 
-            return ResponseEntity.ok(requestList);
+            return ResponseEntity.ok(requesterDetailsList);
 
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
