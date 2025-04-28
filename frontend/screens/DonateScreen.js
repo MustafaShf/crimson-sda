@@ -38,8 +38,11 @@ export default function DonateScreen({ navigation }) {
       return;
     }
 
+    // If user exists and formData.name is empty, fill it
+    const finalName = formData.name || name;
+
     if (
-      !formData.name ||
+      !finalName ||
       !formData.age ||
       !formData.gender ||
       !formData.bloodGroup ||
@@ -51,7 +54,7 @@ export default function DonateScreen({ navigation }) {
     }
 
     const payload = {
-      fullname: formData.name,
+      fullname: finalName,
       age: parseInt(formData.age),
       gender: formData.gender,
       bloodgroup: formData.bloodGroup,
@@ -60,7 +63,7 @@ export default function DonateScreen({ navigation }) {
       userId: userId,
       phone: phone,
       requested: false,
-      timestamp: new Date().toISOString(), // <-- Add current time here
+      timestamp: new Date().toISOString(),
     };
 
     console.log("Submitting payload:", payload);

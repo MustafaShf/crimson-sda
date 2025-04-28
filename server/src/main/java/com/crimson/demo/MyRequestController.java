@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.Firestore;
 import com.google.firebase.cloud.FirestoreClient;
 import com.google.cloud.firestore.Query;
@@ -60,6 +61,42 @@ public class MyRequestController {
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
             return ResponseEntity.status(500).build();
+        }
+    }
+
+    // Cancel request endpoint (new feature)
+    @PostMapping("/cancel")
+    public ResponseEntity<String> cancelRequest(@RequestBody UserIdRequest request) {
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+
+            // Find and delete the request from "requests" collection where donorId ==
+            // userId
+            ApiFuture<QuerySnapshot> requestFuture = db.collection("requests")
+                    .whereEqualTo("donorId", request.getUserId())
+                    .get();
+
+            QuerySnapshot requestSnapshot = requestFuture.get();
+            for (QueryDocumentSnapshot document : requestSnapshot.getDocuments()) {
+                db.collection("requests").document(document.getId()).delete();
+            }
+
+            // Find the donation and update the "requested" field to false
+            ApiFuture<QuerySnapshot> donationFuture = db.collection("donations")
+                    .whereEqualTo("userId", request.getUserId())
+                    .get();
+
+            QuerySnapshot donationSnapshot = donationFuture.get();
+            for (QueryDocumentSnapshot donationDoc : donationSnapshot.getDocuments()) {
+                DocumentReference donationRef = db.collection("donations").document(donationDoc.getId());
+                donationRef.update("requested", false);
+            }
+
+            return ResponseEntity.ok("Request canceled successfully");
+
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error while canceling the request");
         }
     }
 }

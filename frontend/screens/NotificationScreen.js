@@ -38,24 +38,21 @@ export default function NotificationScreen({ navigation }) {
         const data = await response.json();
         console.log("Received data:", data); // Log the received data
 
-        // Check if the data is an array or handle null data
         if (Array.isArray(data) && data.length > 0) {
           const formattedData = data.map((item, index) => ({
-            id: item.donorId || index.toString(), // fallback id if needed
+            id: item.donorId || index.toString(),
             name: item.name,
             blood: item.bloodGroup,
-            units: "1 Unit", // default unit (you can change if API provides)
-            city: "Unknown City", // default, if API doesn’t provide
-            distance: "0 Km", // default
-            hospital: "Unknown Hospital", // default
-            time: new Date(item.timestamp).toLocaleDateString(), // format timestamp nicely
+            units: "1 Unit",
+            city: "Unknown City",
+            distance: "0 Km",
+            hospital: "Unknown Hospital",
+            time: new Date(item.timestamp).toLocaleDateString(),
             status: item.status,
           }));
           setReceivedRequests(formattedData);
         } else if (data === null || data == {}) {
           console.error("No data received or data is an empty object");
-        } else {
-          //console.error("Received data is not an array:", data);
         }
       } catch (error) {
         console.error("Error fetching received requests:", error);
@@ -80,14 +77,14 @@ export default function NotificationScreen({ navigation }) {
         const data = await response.json();
         if (Array.isArray(data)) {
           const formattedData = data.map((item) => ({
-            id: item.donorId || item._id, // fallback id if needed
+            id: item.donorId || item._id,
             name: item.name,
             blood: item.bloodGroup,
-            units: "1 Unit", // default unit
-            city: item.city || "Unknown City", // default if not provided
-            distance: item.distance || "0 Km", // default
-            hospital: item.hospital || "Unknown Hospital", // default
-            time: new Date(item.timestamp).toLocaleDateString(), // formatted timestamp
+            units: "1 Unit",
+            city: item.city || "Unknown City",
+            distance: item.distance || "0 Km",
+            hospital: item.hospital || "Unknown Hospital",
+            time: new Date(item.timestamp).toLocaleDateString(),
             status: item.status,
           }));
           setMyRequests(formattedData);
@@ -104,6 +101,56 @@ export default function NotificationScreen({ navigation }) {
     fetchReceivedRequests();
     fetchMyRequests();
   }, [userId]);
+
+  const handleCancelRequest = async (item) => {
+    try {
+      const response = await fetch(
+        `http://${LOCALLINK}:8080/api/myrequests/cancel`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: item.id, // Using item.id as the userId to cancel request
+          }),
+        }
+      );
+
+      // Check for content type and handle accordingly
+      const contentType = response.headers.get("content-type");
+
+      if (!contentType || !contentType.includes("application/json")) {
+        const responseText = await response.text(); // Read as plain text
+        console.log("Server Response (Plain Text):", responseText);
+
+        if (responseText.includes("Request canceled successfully")) {
+          // Update the UI after successful cancellation
+          setMyRequests((prevRequests) =>
+            prevRequests.filter((request) => request.id !== item.id)
+          );
+          console.log("Request canceled successfully!");
+        } else {
+          console.error("Failed to cancel the request:", responseText);
+        }
+        return; // Exit function early if it's plain text
+      }
+
+      // If the response is JSON, parse it
+      const result = await response.json();
+      if (response.ok) {
+        // Update the UI after successful cancellation
+        setMyRequests((prevRequests) =>
+          prevRequests.filter((request) => request.id !== item.id)
+        );
+        console.log("Request canceled successfully:", result.message);
+      } else {
+        console.error("Failed to cancel the request:", result.message);
+      }
+    } catch (error) {
+      console.error("Error canceling request:", error);
+    }
+  };
 
   const renderRequest = (item) => (
     <View style={styles.card}>
@@ -133,7 +180,10 @@ export default function NotificationScreen({ navigation }) {
           {item.status === "pending" ? (
             <>
               <Text style={styles.pending}>⏳ Request pending</Text>
-              <TouchableOpacity style={styles.cancelButton}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => handleCancelRequest(item)} // Add onPress handler
+              >
                 <Text style={styles.cancelText}>✕ Cancel</Text>
               </TouchableOpacity>
             </>
