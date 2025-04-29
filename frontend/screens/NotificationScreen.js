@@ -40,7 +40,7 @@ export default function NotificationScreen({ navigation }) {
 
         if (Array.isArray(data) && data.length > 0) {
           const formattedData = data.map((item, index) => ({
-            id: item.donorId || index.toString(),
+            id: item.userId || index.toString(),
             name: item.name,
             blood: item.bloodGroup,
             units: "1 Unit",
@@ -50,6 +50,7 @@ export default function NotificationScreen({ navigation }) {
             time: new Date(item.timestamp).toLocaleDateString(),
             status: item.status,
           }));
+          console.log("recepient", formattedData);
           setReceivedRequests(formattedData);
         } else if (data === null || data == {}) {
           console.error("No data received or data is an empty object");
@@ -152,6 +153,90 @@ export default function NotificationScreen({ navigation }) {
     }
   };
 
+  //the issue is this route taking id that was possibly not the required one and its aslo not changing the requested status the request removed when i click from cancel from my request and when i cancel from the received requed i have to cancel it to the my request too
+  //sol->create new route for this update requested status
+
+  const handleCancelReceivedRequest = async (item) => {
+    try {
+      const response = await fetch(
+        `http://${LOCALLINK}:8080/api/myrequests/cancel`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: item.id, // use correct identifier here
+          }),
+        }
+      );
+
+      const contentType = response.headers.get("content-type");
+
+      if (!contentType || !contentType.includes("application/json")) {
+        const responseText = await response.text();
+        console.log("Plain Text Response:", responseText);
+        if (responseText.includes("Request canceled successfully")) {
+          setReceivedRequests((prev) =>
+            prev.filter((req) => req.id !== item.id)
+          );
+          console.log("Received request canceled successfully!");
+        } else {
+          console.error("Cancel failed:", responseText);
+        }
+        return;
+      }
+
+      const result = await response.json();
+      if (response.ok) {
+        setReceivedRequests((prev) => prev.filter((req) => req.id !== item.id));
+        console.log("Received request canceled:", result.message);
+      } else {
+        console.error("Cancel error:", result.message);
+      }
+    } catch (error) {
+      console.error("Error canceling received request:", error);
+    }
+  };
+
+  const handleAcceptRequest = async (item) => {
+    try {
+      const response = await fetch(
+        `http://${LOCALLINK}:8080/api/acceptedrequests/accept`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            donorId: userId,
+            requesterId: item.id,
+          }),
+        }
+      );
+  
+      const text = await response.text(); // Use text instead of json
+  
+      if (response.ok && text.includes("Request accepted")) {
+        console.log("✅ Request accepted on backend:", text);
+        
+        // Remove the accepted item from the UI list
+        setReceivedRequests((prev) =>
+          prev.filter((req) => req.id !== item.id)
+        );
+  
+        // Optional: Refresh accepted requests here if needed
+         //fetchAcceptedRequests();
+  
+      } else {
+        console.error("❌ Accept failed:", text);
+      }
+    } catch (error) {
+      console.error("🔥 Error in handleAcceptRequest:", error);
+    }
+  };
+  
+
   const renderRequest = (item) => (
     <View style={styles.card}>
       <View style={styles.headerRow}>
@@ -168,10 +253,17 @@ export default function NotificationScreen({ navigation }) {
 
       {tab === "received" ? (
         <View style={styles.buttonRow}>
-          <TouchableOpacity style={styles.chatButton}>
-            <Text style={styles.chatText}>💬 Chat</Text>
+          <TouchableOpacity
+            style={styles.chatButton}
+            onPress={() => handleCancelReceivedRequest(item)}
+          >
+            <Text style={styles.chatText}>✕ Cancel</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.acceptButton}>
+
+          <TouchableOpacity
+            style={styles.acceptButton}
+            onPress={() => handleAcceptRequest(item)}
+          >
             <Text style={styles.acceptText}>✓ Accept</Text>
           </TouchableOpacity>
         </View>

@@ -47,9 +47,14 @@ public class DonateNowController {
                 if (existingDonation != null) {
                     // Check if blood groups match
                     if (existingDonation.getBloodgroup().equalsIgnoreCase(donationRequest.getBloodgroup())) {
-                        // Update unitsToDonate (add new units)
+                        // Update unitsToDonate and set requested = false
                         int updatedUnits = existingDonation.getUnitsToDonate() + donationRequest.getUnitsToDonate();
-                        existingDoc.getReference().update("unitsToDonate", updatedUnits);
+
+                        Map<String, Object> updates = new HashMap<>();
+                        updates.put("unitsToDonate", updatedUnits);
+                        updates.put("requested", false); // <- mark as not requested anymore
+
+                        existingDoc.getReference().update(updates);
 
                         System.out.println("Donation updated for userId: " + donationRequest.getUserId());
                         return ResponseEntity.ok("{\"message\": \"Donation updated successfully\"}");
