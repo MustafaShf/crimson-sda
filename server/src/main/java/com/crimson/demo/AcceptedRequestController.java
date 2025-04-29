@@ -7,8 +7,11 @@ import com.google.firebase.cloud.FirestoreClient;
 import org.springframework.http.ResponseEntity;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 @RestController
@@ -58,7 +61,6 @@ public class AcceptedRequestController {
 
             QueryDocumentSnapshot matchedRequest = documents.get(0); // assuming one match
             String recipientId = matchedRequest.getString("requesterId");
-            
 
             // Delete the matched request
             db.collection("requests").document(matchedRequest.getId()).delete();
@@ -97,4 +99,53 @@ public class AcceptedRequestController {
             return ResponseEntity.status(500).body("Error occurred while accepting the request");
         }
     }
+
+    @GetMapping("/matched-users/{userId}")
+    public ResponseEntity<?> getMatchedUsers(@PathVariable String userId) {
+        Firestore db = FirestoreClient.getFirestore();
+
+        try {
+            ApiFuture<QuerySnapshot> future = db.collection("acceptedrequests").get();
+            List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+
+            Set<String> addedUserIds = new HashSet<>();
+            List<Map<String, Object>> matchedUsers = new ArrayList<>();
+
+            for (QueryDocumentSnapshot doc : documents) {
+                String donorId = doc.getString("donorId");
+                String recipientId = doc.getString("recipientId");
+
+                if (userId.equals(donorId)) {
+                    // User is donor
+                    if (!addedUserIds.contains(recipientId)) {
+                        Map<String, Object> userMap = new HashMap<>();
+                        userMap.put("name", doc.getString("recipientName"));
+                        userMap.put("location", doc.getString("recipientLocation"));
+                        userMap.put("phone", doc.getString("recipientPhone"));
+                        userMap.put("userId", recipientId);
+                        matchedUsers.add(userMap);
+                        addedUserIds.add(recipientId);
+                    }
+                } else if (userId.equals(recipientId)) {
+                    // User is recipient
+                    if (!addedUserIds.contains(donorId)) {
+                        Map<String, Object> userMap = new HashMap<>();
+                        userMap.put("name", doc.getString("donorName"));
+                        userMap.put("location", doc.getString("donorLocation"));
+                        userMap.put("phone", doc.getString("donorPhone"));
+                        userMap.put("userId", donorId);
+                        matchedUsers.add(userMap);
+                        addedUserIds.add(donorId);
+                    }
+                }
+            }
+
+            return ResponseEntity.ok(matchedUsers);
+
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error fetching matched users");
+        }
+    }
+
 }

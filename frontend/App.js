@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Toast from "react-native-toast-message";
 import { UserProvider } from "./context/userContext";
 import { UserBloodGroupProvider } from "./context/UserBloodGroupContext";
+import ChatScreen from './screens/chatScreen';
 
 import LoginScreen from "./screens/LoginScreen";
 import SignUpScreen from "./screens/RegisterScreen";
@@ -23,7 +24,7 @@ export default function App() {
   return (
     <UserProvider>
       <UserBloodGroupProvider>
-        {" "}
+        
         {/* 👈 Wrap inside UserProvider */}
         <NavigationContainer>
           <Stack.Navigator
@@ -42,6 +43,7 @@ export default function App() {
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="Notification" component={NotificationScreen} />
             <Stack.Screen name="leadBoard" component={LeaderboardScreen} />
+            <Stack.Screen name="Chat" component={ChatScreen} />
           </Stack.Navigator>
         </NavigationContainer>
         <Toast />

@@ -79,13 +79,20 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
 
         <View style={styles.topRightIcons}>
-          <Feather name="message-square" size={20} color="white" />
+          <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
+            <Feather
+              name="message-square"
+              size={20}
+              color="white"
+              style={{ marginLeft: 12, marginTop: 15 }}
+            />
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate("Notification")}>
             <Feather
               name="bell"
               size={20}
               color="white"
-              style={{ marginLeft: 12,marginTop:15 }}
+              style={{ marginLeft: 12, marginTop: 15 }}
             />
           </TouchableOpacity>
         </View>
