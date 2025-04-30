@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useContext } from 'react';
+import React, { useState, useRef, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -11,9 +11,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
-} from 'react-native';
-import Icon from 'react-native-vector-icons/Feather';
-import { db } from '../fireConfig'; // Your Firebase configuration file
+} from "react-native";
+import Icon from "react-native-vector-icons/Feather";
+import { db } from "../fireConfig"; // Your Firebase configuration file
+import { Linking } from "react-native";
+
 import {
   collection,
   addDoc,
@@ -21,25 +23,26 @@ import {
   orderBy,
   onSnapshot,
   serverTimestamp,
-} from 'firebase/firestore';
-import { UserContext } from '../context/userContext';
+} from "firebase/firestore";
+import { UserContext } from "../context/userContext";
+import * as Location from "expo-location";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const ChatDetailScreen = ({ route, navigation }) => {
   const { conversation } = route.params;
   const { user } = useContext(UserContext);
   const { userId } = user || {};
   const receiverId = conversation.id;
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const flatListRef = useRef(null);
 
-  const chatId = [userId, receiverId].sort().join('_');
-  const messagesRef = collection(db, 'chats', chatId, 'messages');
+  const chatId = [userId, receiverId].sort().join("_");
+  const messagesRef = collection(db, "chats", chatId, "messages");
 
   useEffect(() => {
-    const q = query(messagesRef, orderBy('timestamp', 'asc'));
+    const q = query(messagesRef, orderBy("timestamp", "asc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const loadedMessages = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -61,25 +64,63 @@ const ChatDetailScreen = ({ route, navigation }) => {
       timestamp: serverTimestamp(),
     });
 
-    setMessage('');
+    setMessage("");
   };
 
-  const renderMessageItem = ({ item }) => (
-    <View
-      style={[
-        styles.messageBubble,
-        item.senderId === userId ? styles.myMessage : styles.theirMessage,
-      ]}
-    >
-      <Text style={styles.messageText}>{item.text}</Text>
-      <Text style={styles.messageTime}>
-        {item.timestamp?.toDate().toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        })}
-      </Text>
-    </View>
-  );
+  const sendLocation = async () => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        alert("Permission to access location was denied");
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      const mapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+      await addDoc(messagesRef, {
+        text: mapLink,
+        senderId: userId,
+        receiverId: receiverId,
+        timestamp: serverTimestamp(),
+        type: "location", // You can add a type to identify location messages
+      });
+    } catch (error) {
+      console.error("Error sending location:", error);
+    }
+  };
+
+  const renderMessageItem = ({ item }) => {
+    const isLocation = item.text.startsWith("https://www.google.com/maps?q=");
+
+    return (
+      <View
+        style={[
+          styles.messageBubble,
+          item.senderId === userId ? styles.myMessage : styles.theirMessage,
+        ]}
+      >
+        {isLocation ? (
+          <Text
+            style={[styles.messageText, { color: "blue" }]}
+            onPress={() => Linking.openURL(item.text)}
+          >
+            📍 Location (Tap to view)
+          </Text>
+        ) : (
+          <Text style={styles.messageText}>{item.text}</Text>
+        )}
+        <Text style={styles.messageTime}>
+          {item.timestamp?.toDate().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </Text>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -98,13 +139,13 @@ const ChatDetailScreen = ({ route, navigation }) => {
             <View
               style={[
                 styles.avatar,
-                { backgroundColor: conversation.color || '#F3F3F3' },
+                { backgroundColor: conversation.color || "#F3F3F3" },
               ]}
             >
               <Text
                 style={[
                   styles.avatarText,
-                  { color: conversation.textColor || '#616161' },
+                  { color: conversation.textColor || "#616161" },
                 ]}
               >
                 {conversation.initials}
@@ -146,13 +187,14 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
       {/* Message Input */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         <View style={styles.inputContainer}>
-          <TouchableOpacity style={styles.attachButton}>
-            <Icon name="paperclip" size={22} color="#757575" />
+          <TouchableOpacity style={styles.attachButton} onPress={sendLocation}>
+            <Icon name="map-pin" size={22} color="#757575" />
           </TouchableOpacity>
+
           <TextInput
             style={styles.input}
             placeholder="Type a message..."
@@ -172,7 +214,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
             <Icon
               name="send"
               size={20}
-              color={message.trim().length > 0 ? 'white' : '#BDBDBD'}
+              color={message.trim().length > 0 ? "white" : "#BDBDBD"}
             />
           </TouchableOpacity>
         </View>
@@ -181,30 +223,29 @@ const ChatDetailScreen = ({ route, navigation }) => {
   );
 };
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
-    width: '100%',
+    backgroundColor: "#F5F5F5",
+    width: "100%",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#9A1C2E',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#9A1C2E",
     paddingVertical: 12,
     paddingHorizontal: 16,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
-    width: '100%',
+    width: "100%",
   },
   headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   backButton: {
@@ -212,37 +253,37 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   headerProfile: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   avatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 10,
   },
   avatarText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   headerTextContainer: {
     flex: 1,
   },
   headerName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
+    fontWeight: "600",
+    color: "white",
   },
   headerStatus: {
     fontSize: 12,
-    color: '#F8F8F8',
+    color: "#F8F8F8",
     marginTop: 2,
   },
   headerRight: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   headerButton: {
     padding: 8,
@@ -251,45 +292,45 @@ const styles = StyleSheet.create({
   messagesList: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    width: '100%',
+    width: "100%",
   },
   messageBubble: {
-    maxWidth: '80%',
+    maxWidth: "80%",
     padding: 12,
     borderRadius: 18,
     marginVertical: 4,
   },
   myMessage: {
-    backgroundColor: '#E3F2FD',
-    alignSelf: 'flex-end',
+    backgroundColor: "#E3F2FD",
+    alignSelf: "flex-end",
     borderBottomRightRadius: 4,
   },
   theirMessage: {
-    backgroundColor: 'white',
-    alignSelf: 'flex-start',
+    backgroundColor: "white",
+    alignSelf: "flex-start",
     borderBottomLeftRadius: 4,
   },
   messageText: {
     fontSize: 14,
-    color: '#212121',
+    color: "#212121",
     lineHeight: 20,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   messageTime: {
     fontSize: 11,
-    color: '#757575',
-    alignSelf: 'flex-end',
+    color: "#757575",
+    alignSelf: "flex-end",
     marginTop: 4,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-    width: '100%',
+    borderTopColor: "#EEEEEE",
+    width: "100%",
   },
   attachButton: {
     padding: 8,
@@ -297,25 +338,25 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
     maxHeight: 80,
     fontSize: 14,
-    width: '100%',
+    width: "100%",
   },
   sendButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E0E0E0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#E0E0E0",
+    justifyContent: "center",
+    alignItems: "center",
     marginLeft: 8,
   },
   sendButtonActive: {
-    backgroundColor: '#9A1C2E',
+    backgroundColor: "#9A1C2E",
   },
 });
 
