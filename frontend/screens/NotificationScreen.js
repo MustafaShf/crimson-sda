@@ -6,6 +6,10 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { UserContext } from "../context/userContext";
@@ -19,6 +23,19 @@ export default function NotificationScreen({ navigation }) {
   const [myRequests, setMyRequests] = useState([]);
   const [receivedRequests, setReceivedRequests] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDescription, setReportDescription] = useState("");
+  const [reportingUser, setReportingUser] = useState(null);
+
+  // Predefined report reasons
+  const reportReasons = [
+    "Fake Request",
+    "Didn't Show Up",
+    "Inappropriate Behavior",
+    "Spam",
+    "Other"
+  ];
 
   useEffect(() => {
     const fetchReceivedRequests = async () => {
@@ -36,20 +53,23 @@ export default function NotificationScreen({ navigation }) {
         );
 
         const data = await response.json();
-        console.log("Received data:", data); // Log the received data
+        console.log("Received data:", data);
 
         if (Array.isArray(data) && data.length > 0) {
-          const formattedData = data.map((item, index) => ({
-            id: item.userId || index.toString(),
-            name: item.name,
-            blood: item.bloodGroup,
-            units: "1 Unit",
-            city: "Unknown City",
-            distance: "0 Km",
-            hospital: "Unknown Hospital",
-            time: new Date(item.timestamp).toLocaleDateString(),
-            status: item.status,
-          }));
+          const formattedData = data
+            .filter((item) => item.status?.toLowerCase() === "pending")
+            .map((item, index) => ({
+              id: item.userId || index.toString(),
+              name: item.name,
+              blood: item.bloodGroup,
+              units: "1 Unit",
+              city: "Unknown City",
+              distance: "0 Km",
+              hospital: "Unknown Hospital",
+              time: new Date(item.timestamp).toLocaleDateString(),
+              status: item.status?.toLowerCase(),
+            }));
+
           console.log("recepient", formattedData);
           setReceivedRequests(formattedData);
         } else if (data === null || data == {}) {
@@ -86,8 +106,9 @@ export default function NotificationScreen({ navigation }) {
             distance: item.distance || "0 Km",
             hospital: item.hospital || "Unknown Hospital",
             time: new Date(item.timestamp).toLocaleDateString(),
-            status: item.status,
+            status: item.status.toLowerCase(),
           }));
+          console.log("this is item :", formattedData);
           setMyRequests(formattedData);
         } else {
           console.error("My requests data is not an array:", data);
@@ -113,20 +134,18 @@ export default function NotificationScreen({ navigation }) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            userId: item.id, // Using item.id as the userId to cancel request
+            userId: item.id,
           }),
         }
       );
 
-      // Check for content type and handle accordingly
       const contentType = response.headers.get("content-type");
 
       if (!contentType || !contentType.includes("application/json")) {
-        const responseText = await response.text(); // Read as plain text
+        const responseText = await response.text();
         console.log("Server Response (Plain Text):", responseText);
 
         if (responseText.includes("Request canceled successfully")) {
-          // Update the UI after successful cancellation
           setMyRequests((prevRequests) =>
             prevRequests.filter((request) => request.id !== item.id)
           );
@@ -134,13 +153,11 @@ export default function NotificationScreen({ navigation }) {
         } else {
           console.error("Failed to cancel the request:", responseText);
         }
-        return; // Exit function early if it's plain text
+        return;
       }
 
-      // If the response is JSON, parse it
       const result = await response.json();
       if (response.ok) {
-        // Update the UI after successful cancellation
         setMyRequests((prevRequests) =>
           prevRequests.filter((request) => request.id !== item.id)
         );
@@ -153,9 +170,6 @@ export default function NotificationScreen({ navigation }) {
     }
   };
 
-  //the issue is this route taking id that was possibly not the required one and its aslo not changing the requested status the request removed when i click from cancel from my request and when i cancel from the received requed i have to cancel it to the my request too
-  //sol->create new route for this update requested status
-
   const handleCancelReceivedRequest = async (item) => {
     try {
       const response = await fetch(
@@ -166,7 +180,7 @@ export default function NotificationScreen({ navigation }) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            userId: item.id, // use correct identifier here
+            userId: item.id,
           }),
         }
       );
@@ -214,20 +228,12 @@ export default function NotificationScreen({ navigation }) {
           }),
         }
       );
-  
-      const text = await response.text(); // Use text instead of json
-  
+
+      const text = await response.text();
+
       if (response.ok && text.includes("Request accepted")) {
         console.log("✅ Request accepted on backend:", text);
-        
-        // Remove the accepted item from the UI list
-        setReceivedRequests((prev) =>
-          prev.filter((req) => req.id !== item.id)
-        );
-  
-        // Optional: Refresh accepted requests here if needed
-         //fetchAcceptedRequests();
-  
+        setReceivedRequests((prev) => prev.filter((req) => req.id !== item.id));
       } else {
         console.error("❌ Accept failed:", text);
       }
@@ -235,7 +241,54 @@ export default function NotificationScreen({ navigation }) {
       console.error("🔥 Error in handleAcceptRequest:", error);
     }
   };
-  
+
+  const handleReportUser = (item) => {
+    setReportingUser(item);
+    setReportModalVisible(true);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!reportReason) {
+      alert("Please select a reason for reporting.");
+      return;
+    }
+
+    try {
+      // You'll need to create this API endpoint on your backend
+      const response = await fetch(
+        `http://${LOCALLINK}:8080/api/users/report`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            reportedUserId: reportingUser.id,
+            reporterId: userId,
+            reason: reportReason,
+            description: reportDescription,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        alert("Report submitted successfully");
+      } else {
+        const errorText = await response.text();
+        console.error("Report submission failed:", errorText);
+        alert("Failed to submit report. Please try again later.");
+      }
+    } catch (error) {
+      console.error("Error submitting report:", error);
+      alert("An error occurred while submitting the report");
+    } finally {
+      // Reset and close modal
+      setReportReason("");
+      setReportDescription("");
+      setReportModalVisible(false);
+      setReportingUser(null);
+    }
+  };
 
   const renderRequest = (item) => (
     <View style={styles.card}>
@@ -274,7 +327,7 @@ export default function NotificationScreen({ navigation }) {
               <Text style={styles.pending}>⏳ Request pending</Text>
               <TouchableOpacity
                 style={styles.cancelButton}
-                onPress={() => handleCancelRequest(item)} // Add onPress handler
+                onPress={() => handleCancelRequest(item)}
               >
                 <Text style={styles.cancelText}>✕ Cancel</Text>
               </TouchableOpacity>
@@ -282,8 +335,11 @@ export default function NotificationScreen({ navigation }) {
           ) : (
             <>
               <Text style={styles.accepted}>✔ Request accepted</Text>
-              <TouchableOpacity style={styles.infoButton}>
-                <Text style={styles.infoText}>👤 Donor Info</Text>
+              <TouchableOpacity 
+                style={styles.reportButton}
+                onPress={() => handleReportUser(item)}
+              >
+                <Text style={styles.reportText}>⚠️ Report User</Text>
               </TouchableOpacity>
             </>
           )}
@@ -331,6 +387,81 @@ export default function NotificationScreen({ navigation }) {
           ))}
         </ScrollView>
       )}
+
+      {/* Report User Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={reportModalVisible}
+        onRequestClose={() => setReportModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalContainer}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Report User</Text>
+            
+            <Text style={styles.modalSubtitle}>
+              {reportingUser ? `Reporting ${reportingUser.name}` : 'Select a reason for reporting'}
+            </Text>
+            
+            {/* Reason Selection */}
+            <Text style={styles.inputLabel}>Reason for reporting:</Text>
+            <View style={styles.reasonContainer}>
+              {reportReasons.map((reason) => (
+                <TouchableOpacity
+                  key={reason}
+                  style={[
+                    styles.reasonButton,
+                    reportReason === reason && styles.selectedReasonButton
+                  ]}
+                  onPress={() => setReportReason(reason)}
+                >
+                  <Text style={[
+                    styles.reasonText,
+                    reportReason === reason && styles.selectedReasonText
+                  ]}>
+                    {reason}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            
+            {/* Additional Details */}
+            <Text style={styles.inputLabel}>Additional details (optional):</Text>
+            <TextInput
+              style={styles.textInput}
+              multiline
+              numberOfLines={4}
+              value={reportDescription}
+              onChangeText={setReportDescription}
+              placeholder="Please provide more details about the issue..."
+              placeholderTextColor="#999"
+            />
+            
+            <View style={styles.modalButtonRow}>
+              <TouchableOpacity 
+                style={styles.cancelModalButton}
+                onPress={() => {
+                  setReportModalVisible(false);
+                  setReportReason("");
+                  setReportDescription("");
+                }}
+              >
+                <Text style={styles.cancelModalText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.submitButton}
+                onPress={handleSubmitReport}
+              >
+                <Text style={styles.submitText}>Submit Report</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -458,12 +589,119 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 12,
   },
-  infoButton: {
-    backgroundColor: "#eee",
+  reportButton: {
+    backgroundColor: "#FFEBEE",
     padding: 8,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#D2042D",
   },
-  infoText: {
+  reportText: {
     fontSize: 12,
+    color: "#D2042D",
+    fontWeight: "500",
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#D2042D",
+    marginBottom: 5,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 15,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 8,
+    color: "#333",
+  },
+  reasonContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 15,
+  },
+  reasonButton: {
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#EEEEEE",
+  },
+  selectedReasonButton: {
+    backgroundColor: "#FFE5E8",
+    borderColor: "#D2042D",
+  },
+  reasonText: {
+    fontSize: 12,
+    color: "#666",
+  },
+  selectedReasonText: {
+    color: "#D2042D",
+    fontWeight: "500",
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 10,
+    minHeight: 100,
+    textAlignVertical: "top",
+    marginBottom: 20,
+    fontSize: 14,
+    backgroundColor: "#FAFAFA",
+  },
+  modalButtonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  cancelModalButton: {
+    backgroundColor: "#F5F5F5",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    width: "48%",
+    alignItems: "center",
+  },
+  cancelModalText: {
+    color: "#666",
+    fontWeight: "500",
+  },
+  submitButton: {
+    backgroundColor: "#D2042D",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    width: "48%",
+    alignItems: "center",
+  },
+  submitText: {
+    color: "white",
+    fontWeight: "500",
   },
 });

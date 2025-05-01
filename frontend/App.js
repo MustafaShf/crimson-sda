@@ -19,6 +19,7 @@ import ProfileScreen from "./screens/ProfileScreen";
 import NotificationScreen from "./screens/NotificationScreen";
 import LeaderboardScreen from "./screens/leadScreen";
 import ChatDetailScreen from "./screens/ChatDetailScreen";
+import FeedbackScreen from "./screens/FeedbackScreen";
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -44,6 +45,7 @@ export default function App() {
             <Stack.Screen name="Notification" component={NotificationScreen} />
             <Stack.Screen name="leadBoard" component={LeaderboardScreen} />
             <Stack.Screen name="Chat" component={ChatScreen} />
+            <Stack.Screen name="Feedback" component={FeedbackScreen} />
             <Stack.Screen
               name="ChatDetailScreen"
               component={ChatDetailScreen}

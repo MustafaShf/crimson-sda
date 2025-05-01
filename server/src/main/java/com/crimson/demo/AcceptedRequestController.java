@@ -63,7 +63,10 @@ public class AcceptedRequestController {
             String recipientId = matchedRequest.getString("requesterId");
 
             // Delete the matched request
-            db.collection("requests").document(matchedRequest.getId()).delete();
+            Map<String, Object> updateData = new HashMap<>();
+            updateData.put("status", "accepted");
+
+            db.collection("requests").document(matchedRequest.getId()).update(updateData);
 
             // Step 2: Get donor data
             DocumentSnapshot donorSnapshot = db.collection("users").document(requestBody.getDonorId()).get().get();

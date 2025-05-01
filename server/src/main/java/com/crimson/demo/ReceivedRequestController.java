@@ -16,6 +16,7 @@ import com.google.cloud.firestore.QueryDocumentSnapshot;
 import org.springframework.http.ResponseEntity;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -56,12 +57,20 @@ public class ReceivedRequestController {
                 String requesterId = document.getString("requesterId");
 
                 if (requesterId != null) {
-                    // Now fetch the user document based on requesterId
+                    // Fetch requester details from users collection
                     DocumentSnapshot requesterDoc = db.collection("users").document(requesterId).get().get();
 
                     if (requesterDoc.exists()) {
-                        Map<String, Object> requesterData = requesterDoc.getData();
-                        requesterDetailsList.add(requesterData);
+                        Map<String, Object> mergedData = new HashMap<>(requesterDoc.getData());
+
+                        // Add status field from request document
+                        String status = document.getString("status");
+                        mergedData.put("status", status);
+
+                        // Optional: include request document ID or other fields if needed
+                        mergedData.put("requestId", document.getId());
+
+                        requesterDetailsList.add(mergedData);
                     } else {
                         System.out.println("Requester with ID " + requesterId + " not found.");
                     }
@@ -75,4 +84,5 @@ public class ReceivedRequestController {
             return ResponseEntity.status(500).build();
         }
     }
+
 }

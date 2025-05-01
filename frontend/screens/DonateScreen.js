@@ -8,11 +8,14 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import RNPickerSelect from "react-native-picker-select";
 import { UserContext } from "../context/userContext";
 import Constants from "expo-constants";
+import * as Location from "expo-location";
+
 const { LOCALLINK } = Constants.expoConfig.extra;
 
 export default function DonateScreen({ navigation }) {
@@ -25,6 +28,8 @@ export default function DonateScreen({ navigation }) {
     units: "",
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const { user } = useContext(UserContext);
   const { name, phone, eligibilityStatus, userId } = user || {};
 
@@ -33,12 +38,11 @@ export default function DonateScreen({ navigation }) {
   };
 
   const handleSubmit = async () => {
-    if (eligibilityStatus == false) {
+    if (eligibilityStatus === false) {
       alert("You are not eligible to donate blood at this time.");
       return;
     }
 
-    // If user exists and formData.name is empty, fill it
     const finalName = formData.name || name;
 
     if (
@@ -67,6 +71,8 @@ export default function DonateScreen({ navigation }) {
     };
 
     console.log("Submitting payload:", payload);
+
+    setIsSubmitting(true);
 
     try {
       const response = await fetch(
@@ -97,6 +103,41 @@ export default function DonateScreen({ navigation }) {
     } catch (error) {
       console.error("Error submitting donation:", error);
       alert("An error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  const handleLocationPress = async () => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        alert("Permission to access location was denied");
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      let [reverseGeocode] = await Location.reverseGeocodeAsync(
+        location.coords
+      );
+
+      if (reverseGeocode) {
+        const { city, subregion, subLocality } = reverseGeocode;
+
+        let locationText = "";
+        if (subLocality) locationText += subLocality + ", ";
+        if (city) locationText += city;
+
+        if (locationText) {
+          handleChange("location", locationText);
+        } else {
+          alert("Unable to detect detailed location.");
+        }
+      } else {
+        alert("Unable to detect location.");
+      }
+    } catch (error) {
+      console.error("Location error:", error);
+      alert("Failed to get location. Please try again.");
     }
   };
 
@@ -126,7 +167,7 @@ export default function DonateScreen({ navigation }) {
           {/* Name */}
           <Text style={styles.label}>Full Name</Text>
           {user ? (
-            <Text style={styles.input}>{name}</Text> // Display the name from userContext
+            <Text style={styles.input}>{name}</Text>
           ) : (
             <TextInput
               style={styles.input}
@@ -179,12 +220,26 @@ export default function DonateScreen({ navigation }) {
 
           {/* Location */}
           <Text style={styles.label}>Location</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your location"
-            value={formData.location}
-            onChangeText={(text) => handleChange("location", text)}
-          />
+          <View style={styles.locationWrapper}>
+            <TextInput
+              style={[
+                styles.input,
+                { flex: 1, color: formData.location ? "#000" : "#999" },
+              ]}
+              placeholder="Tap pin to get location"
+              value={formData.location}
+              editable={false} // ❌ prevent manual editing
+              pointerEvents="none"
+            />
+            <TouchableOpacity onPress={handleLocationPress}>
+              <Feather
+                name="map-pin"
+                size={24}
+                color="#870D25"
+                style={{ marginLeft: 10 }}
+              />
+            </TouchableOpacity>
+          </View>
 
           {/* Units */}
           <Text style={styles.label}>Units to Donate</Text>
@@ -197,8 +252,19 @@ export default function DonateScreen({ navigation }) {
           />
 
           {/* Submit */}
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            <Text style={styles.submitButtonText}>Register as Donor</Text>
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              isSubmitting && { backgroundColor: "#aaa" },
+            ]}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.submitButtonText}>Register as Donor</Text>
+            )}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -238,7 +304,7 @@ export default function DonateScreen({ navigation }) {
   );
 }
 
-// Styles
+// Styles remain the same
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF5F5" },
   header: {
@@ -257,6 +323,16 @@ const styles = StyleSheet.create({
     right: 20,
     flexDirection: "row",
   },
+  locationWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    marginBottom: 15,
+    elevation: 2,
+  },
+
   formContainer: { padding: 20 },
   label: { fontSize: 14, fontWeight: "bold", color: "#444", marginBottom: 5 },
   input: {
@@ -292,7 +368,6 @@ const styles = StyleSheet.create({
   activeTab: { backgroundColor: "rgba(210, 4, 45, 0.1)", borderRadius: 20 },
 });
 
-// Picker styles
 const pickerStyles = {
   inputIOS: {
     backgroundColor: "white",
@@ -317,17 +392,5 @@ const pickerStyles = {
   iconContainer: {
     top: 15,
     right: 12,
-  },
-  ineligibleContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  ineligibleText: {
-    fontSize: 20,
-    color: "#870D25",
-    fontWeight: "bold",
-    textAlign: "center",
   },
 };

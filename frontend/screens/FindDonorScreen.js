@@ -134,36 +134,46 @@ const DonorCard = ({ donor, setDonors, setFilteredDonors }) => {
 };
 
 const FindDonorScreen = ({ navigation }) => {
-  const { user } = useContext(UserContext); // <-- ADD this
+  const { user } = useContext(UserContext);
   const { userId } = user || {};
   const [selectedBloodGroup, setSelectedBloodGroup] = useState("");
+  const [location, setLocation] = useState(""); // ✅ New state for location
   const [donors, setDonors] = useState([]);
   const [filteredDonors, setFilteredDonors] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const validBloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
-  // Fetch donors when the component is mounted
   useEffect(() => {
     fetch(`http://${LOCALLINK}:8080/api/find-donors/search`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         userId: userId,
-        bloodGroup: selectedBloodGroup, // pass the selected blood group
+        bloodGroup: selectedBloodGroup,
       }),
     })
       .then((response) => response.json())
       .then((data) => {
         const donorsWithDefaults = data
           .filter((donor) => donor.requested === false)
-          .map((donor) => ({
-            ...donor,
-            timeLimit: donor.timeLimit || "0",
-            distance: donor.distance || "0",
-          }));
+          .map((donor) => {
+            const timestamp = donor.timestamp
+              ? new Date(donor.timestamp)
+              : new Date(0); // Default to Unix epoch if no timestamp
+            const newTimestamp = new Date(
+              timestamp.setDate(timestamp.getDate() + 10)
+            ); // Add 10 days
+
+            const formattedTimestamp = newTimestamp.toISOString().split("T")[0]; // Format as 'YYYY-MM-DD'
+
+            return {
+              ...donor,
+              timeLimit: formattedTimestamp, // Updated timestamp
+              distance: donor.distance || "0",
+            };
+          });
 
         setDonors(donorsWithDefaults);
-        setFilteredDonors(donorsWithDefaults); // Initially set filtered donors to all fetched donors
+        setFilteredDonors(donorsWithDefaults);
         setIsLoading(false);
       })
       .catch((error) => {
@@ -172,16 +182,20 @@ const FindDonorScreen = ({ navigation }) => {
       });
   }, [userId]);
 
-  // Handle the search button
+  // ✅ Updated Search Handler
   const handleSearch = () => {
-    if (selectedBloodGroup) {
-      const filteredData = donors.filter(
-        (donor) => donor.bloodgroup === selectedBloodGroup + "+"
-      );
-      setFilteredDonors(filteredData);
-    } else {
-      setFilteredDonors(donors); // If no blood group selected, show all donors
-    }
+    const filteredData = donors.filter((donor) => {
+      const matchBloodGroup =
+        !selectedBloodGroup ||
+        donor.bloodgroup.toUpperCase() === selectedBloodGroup.toUpperCase();
+      const matchLocation =
+        !location ||
+        donor.location.toLowerCase().includes(location.toLowerCase());
+
+      return matchBloodGroup && matchLocation;
+    });
+
+    setFilteredDonors(filteredData);
   };
 
   return (
@@ -193,34 +207,54 @@ const FindDonorScreen = ({ navigation }) => {
         <Text style={styles.headerSubtitle}>Blood donors around you</Text>
 
         <View style={styles.filterSection}>
-          <Text style={styles.filterTitle}>Choose Blood group</Text>
-          <View style={styles.selectContainer}>
-            <TextInput
-              style={styles.selectInput}
-              placeholder="Select"
-              value={selectedBloodGroup}
-              onChangeText={(text) => setSelectedBloodGroup(text.toUpperCase())} // Update the selectedBloodGroup state
-            />
-            <MaterialIcons
-              name="arrow-drop-down"
-              size={24}
-              color="#666"
-              style={styles.selectIcon}
-            />
-          </View>
+  <Text style={styles.filterTitle}>Choose Blood group</Text>
+  <View style={styles.inputRow}> 
+    <View style={styles.selectContainer}>
+      <TextInput
+        style={styles.selectInput}
+        placeholder="Select Blood Group"
+        value={selectedBloodGroup}
+        onChangeText={(text) => setSelectedBloodGroup(text.toUpperCase())}
+      />
+      <MaterialIcons
+        name="arrow-drop-down"
+        size={24}
+        color="#666"
+        style={styles.selectIcon}
+      />
+    </View>
 
-          <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-            <Ionicons name="search" size={18} color="#870D25" />
-            <Text style={styles.searchButtonText}>Search</Text>
-          </TouchableOpacity>
-        </View>
+    <View style={styles.selectContainer}>
+      <TextInput
+        style={styles.selectInput}
+        placeholder="Enter city or area"
+        value={location}
+        onChangeText={setLocation}
+      />
+      <Ionicons
+        name="location-outline"
+        size={20}
+        color="#666"
+        style={styles.selectIcon}
+      />
+    </View>
+  </View>
+
+  <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+    <Ionicons name="search" size={18} color="#870D25" />
+    <Text style={styles.searchButtonText}>Search</Text>
+  </TouchableOpacity>
+</View>
+
+
+
       </View>
 
       <View style={styles.resultsContainer}>
         <View style={styles.resultsHeader}>
           <Ionicons name="people" size={16} color="#666" />
           <Text style={styles.resultsText}>
-            Found {filteredDonors.length} donors around you
+            Found {filteredDonors.length} donors
           </Text>
         </View>
 
@@ -228,7 +262,7 @@ const FindDonorScreen = ({ navigation }) => {
           <Text>Loading donors...</Text>
         ) : (
           <FlatList
-            data={filteredDonors} // Use the filtered donors for the list
+            data={filteredDonors}
             keyExtractor={(item) => item.userId.toString()}
             renderItem={({ item }) => (
               <DonorCard
@@ -243,6 +277,7 @@ const FindDonorScreen = ({ navigation }) => {
         )}
       </View>
 
+      {/* Bottom Navigation – No Changes */}
       <View style={styles.tabBar}>
         <TouchableOpacity
           style={styles.tabItem}
@@ -499,6 +534,53 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
     color: "#111",
+  },
+  filterSection: {
+    marginTop: 10,
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "white",
+    marginBottom: 8,
+  },
+  inputRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 15,
+  },
+  selectContainer: {
+    backgroundColor: "white",
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    width: '48%', // Makes each input take 48% of the space
+  },
+  selectInput: {
+    height: 42,
+    flex: 1,
+    fontSize: 16,
+  },
+  selectIcon: {
+    marginLeft: 8,
+  },
+  searchButton: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    alignSelf: "center",
+    paddingHorizontal: 25,
+  },
+  searchButtonText: {
+    color: "#870D25",
+    fontWeight: "bold",
+    marginLeft: 5,
+    fontSize: 16,
   },
 });
 

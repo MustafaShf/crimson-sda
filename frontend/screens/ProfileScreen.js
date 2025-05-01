@@ -157,7 +157,13 @@ export default function ProfileScreen({ navigation, route }) {
       text: "About Us",
       onPress: () => openModal("about"),
     },
+    {
+      icon: "message-circle", // Feather icon for feedback
+      text: "Feedback",
+      onPress: () => navigation.navigate("Feedback"), // Navigate to Feedback screen
+    },
   ];
+  
 
   return (
     <View style={styles.container}>
