@@ -9,14 +9,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.firebase.cloud.FirestoreClient;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.DocumentSnapshot;
 import org.springframework.http.ResponseEntity;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -149,6 +154,94 @@ public class UserController {
         } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body("{\"message\": \"Error fetching user\"}");
+        }
+    }
+
+    @PostMapping("/report")
+    public ResponseEntity<String> reportUser(@RequestBody UserReportRequest reportRequest) {
+        String reporterId = reportRequest.getReporterId();
+        String reportedUserId = reportRequest.getReportedUserId();
+        String reason = reportRequest.getReason();
+        String description = reportRequest.getDescription();
+
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+
+            // Fetch reporter user data
+            DocumentSnapshot reporterDoc = db.collection("users").document(reporterId).get().get();
+            if (!reporterDoc.exists()) {
+                return ResponseEntity.status(404).body("{\"message\": \"Reporter not found\"}");
+            }
+            User reporter = reporterDoc.toObject(User.class);
+
+            // Fetch reported user data
+            DocumentSnapshot reportedUserDoc = db.collection("users").document(reportedUserId).get().get();
+            if (!reportedUserDoc.exists()) {
+                return ResponseEntity.status(404).body("{\"message\": \"Reported user not found\"}");
+            }
+            User reportedUser = reportedUserDoc.toObject(User.class);
+
+            // Check if a report already exists with the same reporterId and reportedUserId
+            ApiFuture<QuerySnapshot> existingReportsFuture = db.collection("reports")
+                    .whereEqualTo("reporterId", reporterId)
+                    .whereEqualTo("reportedUserId", reportedUserId)
+                    .get();
+
+            List<QueryDocumentSnapshot> existingReports = existingReportsFuture.get().getDocuments();
+            if (!existingReports.isEmpty()) {
+                return ResponseEntity.status(400).body("{\"message\": \"You have already reported this user.\"}");
+            }
+
+            // Prepare report data
+            Map<String, Object> reportData = new HashMap<>();
+            reportData.put("reporterId", reporterId);
+            reportData.put("reportedUserId", reportedUserId);
+            reportData.put("reportReason", reason);
+            reportData.put("reportDescription", description != null ? description : "");
+            reportData.put("reporterName", reporter.getName());
+            reportData.put("reporterEmail", reporter.getEmail());
+            reportData.put("reportedUserName", reportedUser.getName());
+            reportData.put("reportedUserEmail", reportedUser.getEmail());
+
+            // Add new report
+            db.collection("reports").add(reportData);
+
+            return ResponseEntity.ok("{\"message\": \"Report submitted successfully\"}");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("{\"message\": \"Error submitting report\"}");
+        }
+    }
+
+    @PostMapping("/reportedUsers")
+    public ResponseEntity<Object> getReportedUsers(@RequestBody Map<String, String> request) {
+        String reporterId = request.get("reporterId");
+
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+
+            ApiFuture<QuerySnapshot> future = db.collection("reports")
+                    .whereEqualTo("reporterId", reporterId)
+                    .get();
+
+            QuerySnapshot querySnapshot = future.get();
+
+            // Create a response list of reported user IDs
+            List<Map<String, String>> reportedUsers = new ArrayList<>();
+            for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                String reportedUserId = document.getString("reportedUserId");
+
+                Map<String, String> reported = new HashMap<>();
+                reported.put("reportedUserId", reportedUserId);
+                reportedUsers.add(reported);
+            }
+
+            return ResponseEntity.ok(reportedUsers);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("{\"message\": \"Error fetching reported users\"}");
         }
     }
 

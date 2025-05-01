@@ -34,7 +34,7 @@ export default function NotificationScreen({ navigation }) {
     "Didn't Show Up",
     "Inappropriate Behavior",
     "Spam",
-    "Other"
+    "Other",
   ];
 
   useEffect(() => {
@@ -247,14 +247,16 @@ export default function NotificationScreen({ navigation }) {
     setReportModalVisible(true);
   };
 
+  const [reportMessage, setReportMessage] = useState(""); // Add this state to control report message
+
   const handleSubmitReport = async () => {
     if (!reportReason) {
-      alert("Please select a reason for reporting.");
+      setReportMessage("Please select a reason for reporting.");
+      setReportModalVisible(true); // Show the modal
       return;
     }
 
     try {
-      // You'll need to create this API endpoint on your backend
       const response = await fetch(
         `http://${LOCALLINK}:8080/api/users/report`,
         {
@@ -263,7 +265,7 @@ export default function NotificationScreen({ navigation }) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            reportedUserId: reportingUser.id,
+            reportedUserId: reportingUser?.id,
             reporterId: userId,
             reason: reportReason,
             description: reportDescription,
@@ -272,20 +274,26 @@ export default function NotificationScreen({ navigation }) {
       );
 
       if (response.ok) {
-        alert("Report submitted successfully");
+        const result = await response.json();
+        console.log(result);
+        if (result.message === "You have already reported this user.") {
+          setReportMessage("You have already reported this user.");
+        } else {
+          setReportMessage("Report submitted successfully.");
+        }
+        setReportModalVisible(true); // Show the modal with the message
       } else {
         const errorText = await response.text();
-        console.error("Report submission failed:", errorText);
-        alert("Failed to submit report. Please try again later.");
+        setReportMessage("Failed to submit report. Please try again later.");
+        setReportModalVisible(true); // Show the modal with the error message
       }
     } catch (error) {
-      console.error("Error submitting report:", error);
-      alert("An error occurred while submitting the report");
+      setReportMessage("An error occurred while submitting the report.");
+      setReportModalVisible(true); // Show the modal with the error message
     } finally {
-      // Reset and close modal
+      // Reset after submission
       setReportReason("");
       setReportDescription("");
-      setReportModalVisible(false);
       setReportingUser(null);
     }
   };
@@ -335,7 +343,7 @@ export default function NotificationScreen({ navigation }) {
           ) : (
             <>
               <Text style={styles.accepted}>✔ Request accepted</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.reportButton}
                 onPress={() => handleReportUser(item)}
               >
@@ -401,11 +409,13 @@ export default function NotificationScreen({ navigation }) {
         >
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Report User</Text>
-            
+
             <Text style={styles.modalSubtitle}>
-              {reportingUser ? `Reporting ${reportingUser.name}` : 'Select a reason for reporting'}
+              {reportingUser
+                ? `Reporting ${reportingUser.name}`
+                : "Select a reason for reporting"}
             </Text>
-            
+
             {/* Reason Selection */}
             <Text style={styles.inputLabel}>Reason for reporting:</Text>
             <View style={styles.reasonContainer}>
@@ -414,22 +424,26 @@ export default function NotificationScreen({ navigation }) {
                   key={reason}
                   style={[
                     styles.reasonButton,
-                    reportReason === reason && styles.selectedReasonButton
+                    reportReason === reason && styles.selectedReasonButton,
                   ]}
                   onPress={() => setReportReason(reason)}
                 >
-                  <Text style={[
-                    styles.reasonText,
-                    reportReason === reason && styles.selectedReasonText
-                  ]}>
+                  <Text
+                    style={[
+                      styles.reasonText,
+                      reportReason === reason && styles.selectedReasonText,
+                    ]}
+                  >
                     {reason}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-            
+
             {/* Additional Details */}
-            <Text style={styles.inputLabel}>Additional details (optional):</Text>
+            <Text style={styles.inputLabel}>
+              Additional details (optional):
+            </Text>
             <TextInput
               style={styles.textInput}
               multiline
@@ -437,26 +451,25 @@ export default function NotificationScreen({ navigation }) {
               value={reportDescription}
               onChangeText={setReportDescription}
               placeholder="Please provide more details about the issue..."
-              placeholderTextColor="#999"
             />
-            
-            <View style={styles.modalButtonRow}>
-              <TouchableOpacity 
-                style={styles.cancelModalButton}
-                onPress={() => {
-                  setReportModalVisible(false);
-                  setReportReason("");
-                  setReportDescription("");
-                }}
-              >
-                <Text style={styles.cancelModalText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.submitButton}
+
+            {/* Display report message */}
+            {reportMessage ? (
+              <Text style={styles.reportMessage}>{reportMessage}</Text>
+            ) : null}
+
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                style={styles.modalButton}
                 onPress={handleSubmitReport}
               >
-                <Text style={styles.submitText}>Submit Report</Text>
+                <Text style={styles.modalButtonText}>Submit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: "#ccc" }]}
+                onPress={() => setReportModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -704,4 +717,24 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "500",
   },
+  modalButtonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 20,
+    gap: 10, // Optional, for spacing between buttons
+  },
+  
+  modalButton: {
+    flex: 1,
+    backgroundColor: "#E53935",
+    paddingVertical: 10,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  
+  modalButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  
 });
