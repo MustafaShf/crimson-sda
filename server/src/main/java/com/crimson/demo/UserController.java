@@ -15,6 +15,8 @@ import com.google.firebase.cloud.FirestoreClient;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.DocumentSnapshot;
 import org.springframework.http.ResponseEntity;
+import com.google.cloud.Timestamp;
+import com.google.cloud.firestore.FieldValue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -96,21 +98,22 @@ public class UserController {
             // Generate unique user ID
             String userId = UUID.randomUUID().toString();
 
-            // Create User object with password included
-            User user = new User(
-                    userId,
-                    registerRequest.getName(),
-                    registerRequest.getEmail(),
-                    registerRequest.getPassword(), // Save the password
-                    registerRequest.getPhone(),
-                    registerRequest.getAddress(),
-                    registerRequest.getEligibilityStatus());
-
             // Get Firestore instance
             Firestore db = FirestoreClient.getFirestore();
 
-            // Save user document with userId as the document ID
-            db.collection("users").document(userId).set(user);
+            // Prepare data map
+            Map<String, Object> userMap = new HashMap<>();
+            userMap.put("userId", userId);
+            userMap.put("name", registerRequest.getName());
+            userMap.put("email", registerRequest.getEmail());
+            userMap.put("password", registerRequest.getPassword()); // Store hashed in production
+            userMap.put("phone", registerRequest.getPhone());
+            userMap.put("address", registerRequest.getAddress());
+            userMap.put("eligibilityStatus", registerRequest.getEligibilityStatus());
+            userMap.put("createdAt", FieldValue.serverTimestamp()); // Add timestamp here
+
+            // Save user document with userId as document ID
+            db.collection("users").document(userId).set(userMap);
 
             System.out.println("User registered: " + userId);
 
