@@ -151,4 +151,50 @@ public class AcceptedRequestController {
         }
     }
 
+    @GetMapping("/history/{userId}")
+    public ResponseEntity<List<String>> getUserDonationHistory(@PathVariable String userId) {
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+
+            ApiFuture<QuerySnapshot> future = db.collection("acceptedrequests").get();
+            QuerySnapshot querySnapshot = future.get();
+
+            List<String> history = new ArrayList<>();
+
+            for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                Map<String, Object> data = document.getData();
+                if (data == null) continue;
+
+                String donorId = (String) data.get("donorId");
+                String donorName = (String) data.get("donorName");
+                String donorLocation = (String) data.get("donorLocation");
+                String donorPhone = (String) data.get("donorPhone");
+
+                String recipientId = (String) data.get("recipientId");
+                String recipientName = (String) data.get("recipientName");
+                String recipientLocation = (String) data.get("recipientLocation");
+                String recipientPhone = (String) data.get("recipientPhone");
+
+                if (userId.equals(donorId)) {
+                    String paragraph = String.format(
+                            "You donated blood to %s located in %s. Their contact number was %s. You were donating from %s and your contact number was %s.",
+                            recipientName, recipientLocation, recipientPhone, donorLocation, donorPhone
+                    );
+                    history.add(paragraph);
+                } else if (userId.equals(recipientId)) {
+                    String paragraph = String.format(
+                            "You received blood from %s located in %s. Their contact number was %s. You were in %s and your contact number was %s.",
+                            donorName, donorLocation, donorPhone, recipientLocation, recipientPhone
+                    );
+                    history.add(paragraph);
+                }
+            }
+
+            return ResponseEntity.ok(history);
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
 }
