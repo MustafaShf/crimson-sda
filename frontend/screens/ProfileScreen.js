@@ -13,10 +13,15 @@ import { Feather } from "@expo/vector-icons";
 import { UserContext } from "../context/userContext";
 import Constants from "expo-constants";
 const { LOCALLINK } = Constants.expoConfig.extra;
+import RNHTMLtoPDF from "react-native-html-to-pdf";
+import * as FileSystem from "expo-file-system";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 
 export default function ProfileScreen({ navigation, route }) {
   const { user, setUser } = useContext(UserContext);
   const { userId, name, email, phone, address, eligibilityStatus } = user || {};
+  const [historyData, setHistoryData] = useState([]);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
@@ -29,6 +34,27 @@ export default function ProfileScreen({ navigation, route }) {
   });
 
   useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const response = await fetch(
+          `http://${LOCALLINK}:8080/api/acceptedrequests/history/${userId}`
+        );
+        const text = await response.text();
+        if (text) {
+          const data = JSON.parse(text);
+          setHistoryData(data);
+        } else {
+          console.log("No history data found.");
+        }
+      } catch (error) {
+        console.error("Error fetching user history:", error);
+      }
+    };
+
+    if (userId) fetchHistory();
+  }, [userId]);
+
+  useEffect(() => {
     const fetchDonationDetails = async () => {
       try {
         const response = await fetch(
@@ -38,34 +64,28 @@ export default function ProfileScreen({ navigation, route }) {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ userId }), // Sending userId in body
+            body: JSON.stringify({ userId }),
           }
         );
 
         const text = await response.text();
-
         if (text) {
           const data = JSON.parse(text);
-
           setUserData((prev) => ({
             ...prev,
             donationsCount: data.unitsToDonate || 0,
             bloodType: data.bloodgroup || "NA",
           }));
         } else {
-          // If response is empty, keep default values
-          console.log("No donation data found. Setting defaults.");
+          console.log("No donation data found.");
         }
       } catch (error) {
         console.error("Error fetching donation details:", error);
       }
     };
 
-    if (userId) {
-      fetchDonationDetails();
-    }
+    if (userId) fetchDonationDetails();
   }, [userId]);
-
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
@@ -136,6 +156,40 @@ export default function ProfileScreen({ navigation, route }) {
     }
   };
 
+  const generateAndSharePDF = async () => {
+    const historyHtml = historyData.length
+      ? historyData
+          .map((entry, index) => `<p>${index + 1}. ${entry}</p>`)
+          .join("")
+      : "<p>No donation history available.</p>";
+
+    const htmlContent = `
+      <html>
+        <body>
+          <h1>Donation History</h1>
+          <p><strong>Name:</strong> ${userData.name}</p>
+          <p><strong>Email:</strong> ${userData.email}</p>
+          <p><strong>Donations Count:</strong> ${userData.donationsCount}</p>
+          <p><strong>Blood Type:</strong> ${userData.bloodType}</p>
+          <h2>History</h2>
+          ${historyHtml}
+        </body>
+      </html>
+    `;
+
+    try {
+      const { uri } = await Print.printToFileAsync({ html: htmlContent });
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri);
+      } else {
+        alert("Sharing is not available on this device.");
+      }
+    } catch (error) {
+      console.error("PDF generation error:", error);
+    }
+  };
+
   const options = [
     {
       icon: "award",
@@ -145,7 +199,7 @@ export default function ProfileScreen({ navigation, route }) {
     {
       icon: "download",
       text: "Download Receipt",
-      onPress: () => Alert.alert("Success", "Receipt downloaded successfully"),
+      onPress: generateAndSharePDF,
     },
     {
       icon: "book-open",
@@ -157,13 +211,12 @@ export default function ProfileScreen({ navigation, route }) {
       text: "About Us",
       onPress: () => openModal("about"),
     },
-    {
-      icon: "message-circle", // Feather icon for feedback
-      text: "Feedback",
-      onPress: () => navigation.navigate("Feedback"), // Navigate to Feedback screen
-    },
+    // {
+    //   icon: "message-circle", // Feather icon for feedback
+    //   text: "Feedback",
+    //   onPress: () => navigation.navigate("Feedback"), // Navigate to Feedback screen
+    // },
   ];
-  
 
   return (
     <View style={styles.container}>

@@ -297,6 +297,7 @@ export default function NotificationScreen({ navigation }) {
       setReportingUser(null);
     }
   };
+  
 
   const renderRequest = (item) => (
     <View style={styles.card}>
@@ -304,9 +305,9 @@ export default function NotificationScreen({ navigation }) {
         <Text style={styles.bloodGroup}>{item.blood}</Text>
         <View style={{ flex: 1, paddingLeft: 10 }}>
           <Text style={styles.name}>{item.name}</Text>
-          <Text style={styles.details}>{item.city}</Text>
+          {/* <Text style={styles.details}>{item.city}</Text>
           <Text style={styles.details}>{item.distance}</Text>
-          <Text style={styles.details}>{item.hospital}</Text>
+          <Text style={styles.details}>{item.hospital}</Text> */}
           <Text style={styles.time}>Time Limit: {item.time}</Text>
         </View>
         <Feather name="more-vertical" size={18} color="#333" />
@@ -723,7 +724,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     gap: 10, // Optional, for spacing between buttons
   },
-  
+
   modalButton: {
     flex: 1,
     backgroundColor: "#E53935",
@@ -731,10 +732,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: "center",
   },
-  
+
   modalButtonText: {
     color: "#fff",
     fontWeight: "bold",
   },
-  
 });

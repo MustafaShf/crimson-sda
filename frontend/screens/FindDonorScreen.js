@@ -106,10 +106,10 @@ const DonorCard = ({ donor, setDonors, setFilteredDonors }) => {
           <Ionicons name="location-outline" size={16} color="#666" />
           <Text style={styles.detailText}>{donor.location}</Text>
         </View>
-        <View style={styles.detailItem}>
+        {/* <View style={styles.detailItem}>
           <MaterialIcons name="directions" size={16} color="#666" />
           <Text style={styles.detailText}>{donor.distance} Km</Text>
-        </View>
+        </View> */}
         <View style={styles.detailItem}>
           <Text style={styles.timeLabel}>Time Limit:</Text>
           <Text style={styles.timeValue}>{donor.timeLimit}</Text>
