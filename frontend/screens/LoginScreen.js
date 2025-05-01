@@ -6,17 +6,23 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { UserContext } from "../context/userContext"; // ✅ Make sure path is correct
+import { UserContext } from "../context/userContext";
 import Constants from 'expo-constants';
 const { LOCALLINK } = Constants.expoConfig.extra;
+
 export default function LoginScreen({ navigation }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const { setUser } = useContext(UserContext); // ✅ Access setUser from context
+  const [adminModalVisible, setAdminModalVisible] = useState(false);
+  const [adminCode, setAdminCode] = useState('');
+  const ADMIN_PASSCODE = '1234567';
+
+  const { setUser } = useContext(UserContext);
 
   const handleLogin = async () => {
     if (!name || !password) {
@@ -40,13 +46,23 @@ export default function LoginScreen({ navigation }) {
 
       if (response.ok) {
         console.log("Login success:", data.name, data.userId);
-        setUser(data); // ✅ Store user in global context
-        navigation.replace("Home"); // ✅ Go to Home screen (replace to avoid back to login)
+        setUser(data);
+        navigation.replace("Home");
       } else {
         Alert.alert("Login Failed", data.message || "Invalid credentials");
       }
     } catch (error) {
       Alert.alert("Error", "Something went wrong: " + error.message);
+    }
+  };
+
+  const handleAdminAccess = () => {
+    if (adminCode === ADMIN_PASSCODE) {
+      setAdminModalVisible(false);
+      setAdminCode('');
+      navigation.navigate("AdminPanel");
+    } else {
+      Alert.alert('Invalid Passcode', 'Access Denied. Please try again.');
     }
   };
 
@@ -94,10 +110,45 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.primaryButtonText}>Step In, Be a Hero</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.secondaryButton}>
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={() => setAdminModalVisible(true)}
+        >
           <Text style={styles.secondaryButtonText}>Access Admin Panel</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Admin Passcode Modal */}
+      <Modal visible={adminModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Enter 7-digit Admin Code</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="e.g. 4587251"
+              placeholderTextColor="#999"
+              keyboardType="numeric"
+              maxLength={7}
+              value={adminCode}
+              onChangeText={setAdminCode}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.modalBtn} onPress={handleAdminAccess}>
+                <Text style={styles.modalBtnText}>Enter</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: '#ccc' }]}
+                onPress={() => {
+                  setAdminModalVisible(false);
+                  setAdminCode('');
+                }}
+              >
+                <Text style={[styles.modalBtnText, { color: '#333' }]}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -108,10 +159,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     justifyContent: "center",
     paddingHorizontal: 20,
-    // Note: fontFamily can only be applied to Text components in React Native
   },
   card: {
-    backgroundColor: "#870D25", // Burgundy red
+    backgroundColor: "#870D25",
     borderRadius: 20,
     padding: 30,
     shadowColor: "#000",
@@ -129,10 +179,10 @@ const styles = StyleSheet.create({
   title: {
     color: "#fff",
     fontSize: 24,
-    fontWeight: "200", // Using the numeric weight value for ExtraLight
+    fontWeight: "200",
     alignSelf: "center",
     marginBottom: 30,
-    fontFamily: "Roboto", // Just specify the font family
+    fontFamily: "Roboto",
   },
   input: {
     backgroundColor: "#ddd",
@@ -166,12 +216,11 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: "center",
     marginBottom: 15,
-    // Add drop shadow for the button
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 6,
-    elevation: 8, // for Android
+    elevation: 8,
   },
   primaryButtonText: {
     color: "#fff",
@@ -188,5 +237,51 @@ const styles = StyleSheet.create({
     color: "#444",
     fontFamily: "Roboto",
     fontWeight: "200",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCard: {
+    backgroundColor: '#fff',
+    padding: 25,
+    borderRadius: 15,
+    width: '85%',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#870D25',
+    marginBottom: 20,
+  },
+  modalInput: {
+    width: '100%',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 10,
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalBtn: {
+    flex: 1,
+    backgroundColor: '#870D25',
+    padding: 12,
+    marginHorizontal: 5,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalBtnText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

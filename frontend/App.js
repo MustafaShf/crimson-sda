@@ -5,7 +5,7 @@ import Toast from "react-native-toast-message";
 import { UserProvider } from "./context/userContext";
 import { UserBloodGroupProvider } from "./context/UserBloodGroupContext";
 import ChatScreen from "./screens/chatScreen";
-
+import SplashScreen from './screens/SplashScreen';
 import LoginScreen from "./screens/LoginScreen";
 import SignUpScreen from "./screens/RegisterScreen";
 import EligibilityQ1 from "./screens/EligibilityTestScreen";
@@ -20,6 +20,7 @@ import NotificationScreen from "./screens/NotificationScreen";
 import LeaderboardScreen from "./screens/leadScreen";
 import ChatDetailScreen from "./screens/ChatDetailScreen";
 import FeedbackScreen from "./screens/FeedbackScreen";
+import AdminDashboard from './screens/AdminScreen';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -29,9 +30,10 @@ export default function App() {
         {/* 👈 Wrap inside UserProvider */}
         <NavigationContainer>
           <Stack.Navigator
-            initialRouteName="Login"
+            initialRouteName="Splash"
             screenOptions={{ headerShown: false }}
           >
+            <Stack.Screen name="Splash" component={SplashScreen} /> 
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="SignUp" component={SignUpScreen} />
             <Stack.Screen name="EligibilityQ1" component={EligibilityQ1} />
@@ -46,6 +48,7 @@ export default function App() {
             <Stack.Screen name="leadBoard" component={LeaderboardScreen} />
             <Stack.Screen name="Chat" component={ChatScreen} />
             <Stack.Screen name="Feedback" component={FeedbackScreen} />
+            <Stack.Screen name="AdminPanel" component={AdminDashboard} />
             <Stack.Screen
               name="ChatDetailScreen"
               component={ChatDetailScreen}
