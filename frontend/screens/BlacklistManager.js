@@ -102,9 +102,9 @@ export default function BlacklistManager({ isDarkMode }) {
             placeholder="Enter name to blacklist"
             placeholderTextColor={isDarkMode ? "#888" : "#999"}
           />
-          <TouchableOpacity style={styles.addBtn} onPress={handleAdd}>
+          {/* <TouchableOpacity style={styles.addBtn} onPress={handleAdd}>
             <AntDesign name="pluscircle" size={46} color="#870D25" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
