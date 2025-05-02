@@ -1,28 +1,66 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, FlatList } from 'react-native';
-import { AntDesign } from '@expo/vector-icons';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  FlatList,
+} from "react-native";
+import { AntDesign } from "@expo/vector-icons";
+import Constants from "expo-constants";
+const { LOCALLINK } = Constants.expoConfig.extra;
 
 export default function BlacklistManager({ isDarkMode }) {
-  const [blacklist, setBlacklist] = useState(['Spam Bot 2345', 'Fake Account']);
-  const [input, setInput] = useState('');
-  const [error, setError] = useState('');
+  const [blacklist, setBlacklist] = useState([""]);
+  const [input, setInput] = useState("");
+  const [error, setError] = useState("");
 
   const styles = getStyles(isDarkMode);
 
-  const handleAdd = () => {
-    if (!input.trim()) {
-      setError('Please enter a name to blacklist');
+  const handleAdd = async () => {
+    const trimmedInput = input.trim();
+
+    if (!trimmedInput) {
+      setError("Please enter a name (email) to blacklist");
       return;
     }
 
-    if (blacklist.includes(input.trim())) {
-      setError('This name is already in your blacklist');
+    if (blacklist.includes(trimmedInput)) {
+      setError("This user is already in your blacklist");
       return;
     }
 
-    setBlacklist([...blacklist, input.trim()]);
-    setInput('');
-    setError('');
+    try {
+      const response = await fetch(
+        `http://${LOCALLINK}:8080/api/blacklist/removeUser`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: trimmedInput }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to blacklist user");
+      }
+
+      // Optional: parse response if needed
+      const result = await response.json();
+      console.log("Blacklist success:", result);
+
+      setBlacklist([
+        ...blacklist.filter((name) => !name.startsWith("Fake")),
+        trimmedInput,
+      ]);
+      setInput("");
+      setError("");
+      Alert.alert("Success", `${trimmedInput} has been blacklisted.`);
+    } catch (error) {
+      console.error(error);
+      setError("An error occurred while blacklisting the user.");
+    }
   };
 
   const handleRemove = (name) => {
@@ -33,9 +71,10 @@ export default function BlacklistManager({ isDarkMode }) {
         { text: "Cancel", style: "cancel" },
         {
           text: "Remove",
-          onPress: () => setBlacklist(blacklist.filter(user => user !== name)),
-          style: "destructive"
-        }
+          onPress: () =>
+            setBlacklist(blacklist.filter((user) => user !== name)),
+          style: "destructive",
+        },
       ]
     );
   };
@@ -58,7 +97,7 @@ export default function BlacklistManager({ isDarkMode }) {
             value={input}
             onChangeText={(text) => {
               setInput(text);
-              setError('');
+              setError("");
             }}
             placeholder="Enter name to blacklist"
             placeholderTextColor={isDarkMode ? "#888" : "#999"}
@@ -92,83 +131,84 @@ export default function BlacklistManager({ isDarkMode }) {
   );
 }
 
-const getStyles = (isDarkMode) => StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: isDarkMode ? '#121212' : '#f5f5f5',
-  },
-  card: {
-    backgroundColor: isDarkMode ? '#1F1F1F' : 'white',
-    padding: 20,
-    borderRadius: 20,
-    marginBottom: 20,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#870D25'
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: isDarkMode ? '#444' : '#ddd',
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 16,
-    color: isDarkMode ? '#E5E5E5' : '#111',
-    marginRight: 10,
-    backgroundColor: isDarkMode ? '#2B2B2B' : '#FFF',
-  },
-  addBtn: {
-    padding: 4,
-  },
-  list: {
-    maxHeight: 300,
-  },
-  blacklistItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: isDarkMode ? '#333' : '#f0f0f0',
-  },
-  user: {
-    fontSize: 16,
-    color: isDarkMode ? '#E0E0E0' : '#333',
-    flex: 1,
-  },
-  errorText: {
-    color: '#FF4C4C',
-    marginBottom: 12,
-    fontSize: 14,
-  },
-  emptyContainer: {
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: isDarkMode ? '#AAAAAA' : '#666',
-    fontWeight: 'bold',
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: isDarkMode ? '#888' : '#999',
-    marginTop: 4,
-  }
-});
+const getStyles = (isDarkMode) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: 16,
+      backgroundColor: isDarkMode ? "#121212" : "#f5f5f5",
+    },
+    card: {
+      backgroundColor: isDarkMode ? "#1F1F1F" : "white",
+      padding: 20,
+      borderRadius: 20,
+      marginBottom: 20,
+      elevation: 5,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: "bold",
+      marginBottom: 16,
+      color: "#870D25",
+    },
+    inputRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 12,
+    },
+    input: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: isDarkMode ? "#444" : "#ddd",
+      borderRadius: 10,
+      padding: 12,
+      fontSize: 16,
+      color: isDarkMode ? "#E5E5E5" : "#111",
+      marginRight: 10,
+      backgroundColor: isDarkMode ? "#2B2B2B" : "#FFF",
+    },
+    addBtn: {
+      padding: 4,
+    },
+    list: {
+      maxHeight: 300,
+    },
+    blacklistItem: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: 12,
+      paddingHorizontal: 4,
+      borderBottomWidth: 1,
+      borderBottomColor: isDarkMode ? "#333" : "#f0f0f0",
+    },
+    user: {
+      fontSize: 16,
+      color: isDarkMode ? "#E0E0E0" : "#333",
+      flex: 1,
+    },
+    errorText: {
+      color: "#FF4C4C",
+      marginBottom: 12,
+      fontSize: 14,
+    },
+    emptyContainer: {
+      padding: 20,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    emptyText: {
+      fontSize: 16,
+      color: isDarkMode ? "#AAAAAA" : "#666",
+      fontWeight: "bold",
+    },
+    emptySubtext: {
+      fontSize: 14,
+      color: isDarkMode ? "#888" : "#999",
+      marginTop: 4,
+    },
+  });

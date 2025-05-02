@@ -1,281 +1,262 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
   FlatList,
-  TextInput,
-  ActivityIndicator
-} from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+  ActivityIndicator,
+  StyleSheet,
+  Pressable,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useColorScheme } from "react-native";
+import Constants from "expo-constants";
+const { LOCALLINK } = Constants.expoConfig.extra;
 
-export default function FeedbackList({ isDarkMode }) {
-  const [expanded, setExpanded] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [filter, setFilter] = useState('');
+// Mock data for user reports
+const MOCK_REPORTED_USERS = [
+  {
+    reportedUserId: "usr_123456",
+    reportedEmail: "user1@example.com",
+    reason: "Inappropriate content and harassment in multiple messages",
+    reporterCount: 5,
+  },
+  {
+    reportedUserId: "usr_789012",
+    reportedEmail: "baduser@email.com",
+    reason: "Spam and unsolicited promotional messages",
+    reporterCount: 3,
+  },
+  {
+    reportedUserId: "usr_345678",
+    reportedEmail: "fake.account@test.com",
+    reason: "Fake profile with misleading information",
+    reporterCount: 7,
+  },
+  {
+    reportedUserId: "usr_901234",
+    reportedEmail: "scammer99@example.org",
+    reason: "Attempting to scam other users",
+    reporterCount: 12,
+  },
+];
 
-  const themeStyles = getStyles(isDarkMode);
+const UserReportsScreen = () => {
+  const [reportedUsers, setReportedUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const scheme = useColorScheme(); // Detects the current color scheme (light or dark)
 
-  const allFeedback = [
-    { id: 1, user: 'Ali Raza', message: 'The blood donation process was smooth and the staff was very helpful!', date: '2 days ago', rating: 5 },
-    { id: 2, user: 'Sara Khan', message: 'Great initiative but needs faster donor matching. Had to wait for 3 days.', date: '1 week ago', rating: 3 },
-    { id: 3, user: 'Muhammad Ahmed', message: 'The app is intuitive and easy to use. Found a donor within hours.', date: '3 days ago', rating: 5 },
-    { id: 4, user: 'Fatima Zahra', message: 'Could improve notification system, missed my appointment.', date: '5 days ago', rating: 2 },
-    { id: 5, user: 'Hassan Ali', message: 'Excellent service! Helped me find a rare blood type donor quickly.', date: '1 day ago', rating: 5 },
-  ];
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const response = await fetch(
+          `http://${LOCALLINK}:8080/api/reports/all`
+        );
+        const data = await response.json();
 
-  const filteredFeedback = filter 
-    ? allFeedback.filter(item => 
-        item.user.toLowerCase().includes(filter.toLowerCase()) || 
-        item.message.toLowerCase().includes(filter.toLowerCase())
-      )
-    : allFeedback;
+        // Transform the data to match the current rendering structure
+        const transformedData = data.map((report) => ({
+          reportedUserId: report.reportedUserId,
+          reportedEmail: report.reportedUserEmail,
+          reason: report.reportReason,
+          reporterCount: 1, // Assuming 1 report per item; update logic if needed
+        }));
 
-  const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => setLoading(false), 1000);
-  };
+        setReportedUsers(transformedData);
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const renderRating = (rating) => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <MaterialIcons 
-          key={i}
-          name={i <= rating ? "star" : "star-border"} 
-          size={16} 
-          color={i <= rating ? "#F59E0B" : "#CBD5E1"} 
-          style={themeStyles.star}
-        />
-      );
-    }
-    return <View style={themeStyles.ratingContainer}>{stars}</View>;
-  };
+    fetchReports();
+  }, []);
 
-  const renderFeedbackItem = ({ item }) => (
-    <View style={themeStyles.feedbackItem}>
-      <View style={themeStyles.feedbackHeader}>
-        <View style={themeStyles.userContainer}>
-          <View style={themeStyles.userInitial}>
-            <Text style={themeStyles.initialText}>{item.user.charAt(0)}</Text>
-          </View>
-          <View>
-            <Text style={themeStyles.user}>{item.user}</Text>
-            <Text style={themeStyles.date}>{item.date}</Text>
-          </View>
+  const renderItem = ({ item }) => (
+    <Pressable
+      onPress={() => {
+        console.log("Reported User ID:", item.reportedUserId);
+        console.log("Reported Email:", item.reportedEmail);
+        console.log("Report Reason:", item.reason);
+        console.log("Reporter Count:", item.reporterCount);
+      }}
+      style={[styles.card, scheme === "dark" && styles.cardDark]}
+    >
+      <View style={styles.reportHeader}>
+        <Text style={[styles.email, scheme === "dark" && styles.emailDark]}>
+          {item.reportedEmail || "Unknown Email"}
+        </Text>
+        <View style={styles.badgeContainer}>
+          <Text
+            style={[
+              styles.reporterBadge,
+              scheme === "dark" && styles.reporterBadgeDark,
+            ]}
+          >
+            {item.reporterCount} reports
+          </Text>
         </View>
-        {renderRating(item.rating)}
       </View>
-      <Text style={themeStyles.message}>{item.message}</Text>
-    </View>
+
+      <Text style={[styles.userId, scheme === "dark" && styles.userIdDark]}>
+        ID: {item.reportedUserId || "Unknown ID"}
+      </Text>
+
+      <View style={styles.reasonContainer}>
+        <Text
+          style={[
+            styles.reasonLabel,
+            scheme === "dark" && styles.reasonLabelDark,
+          ]}
+        >
+          Reason:
+        </Text>
+        <Text
+          style={[
+            styles.reasonText,
+            scheme === "dark" && styles.reasonTextDark,
+          ]}
+        >
+          {item.reason || "No reason provided"}
+        </Text>
+      </View>
+    </Pressable>
   );
 
   return (
-    <View style={themeStyles.container}>
-      <View style={themeStyles.header}>
-        <Text style={themeStyles.title}>User Feedback</Text>
-        <TouchableOpacity 
-          style={themeStyles.refreshButton}
-          onPress={handleRefresh}
-        >
-          <MaterialIcons name="refresh" size={20} color="#870D25" />
-        </TouchableOpacity>
-      </View>
-      
-      <View style={themeStyles.searchContainer}>
-        <MaterialIcons name="search" size={20} color="#666" style={themeStyles.searchIcon} />
-        <TextInput
-          style={themeStyles.searchInput}
-          placeholder="Search feedback..."
-          placeholderTextColor={isDarkMode ? '#999' : '#666'}
-          value={filter}
-          onChangeText={setFilter}
-        />
-        {filter !== "" && (
-          <TouchableOpacity onPress={() => setFilter("")}>
-            <MaterialIcons name="clear" size={20} color="#666" />
-          </TouchableOpacity>
-        )}
-      </View>
-      
+    <SafeAreaView
+      style={[styles.container, scheme === "dark" && styles.containerDark]}
+    >
+      <Text style={[styles.header, scheme === "dark" && styles.headerDark]}>
+        User Report Management
+      </Text>
       {loading ? (
-        <View style={themeStyles.loadingContainer}>
-          <ActivityIndicator size="large" color="#870D25" />
-          <Text style={themeStyles.loadingText}>Loading feedback...</Text>
-        </View>
+        <ActivityIndicator
+          size="large"
+          color={scheme === "dark" ? "#fff" : "#4f46e5"}
+        />
+      ) : reportedUsers.length === 0 ? (
+        <Text style={[styles.empty, scheme === "dark" && styles.emptyDark]}>
+          No reported users found.
+        </Text>
       ) : (
-        <>
-          {filteredFeedback.length > 0 ? (
-            <FlatList
-              data={expanded ? filteredFeedback : filteredFeedback.slice(0, 3)}
-              renderItem={renderFeedbackItem}
-              keyExtractor={item => item.id.toString()}
-              contentContainerStyle={themeStyles.listContainer}
-              showsVerticalScrollIndicator={false}
-              ItemSeparatorComponent={() => <View style={themeStyles.separator} />}
-            />
-          ) : (
-            <View style={themeStyles.emptyContainer}>
-              <MaterialIcons name="feedback" size={50} color="#CBD5E1" />
-              <Text style={themeStyles.emptyText}>No feedback matches your search</Text>
-            </View>
-          )}
-          
-          {allFeedback.length > 3 && (
-            <TouchableOpacity
-              style={themeStyles.expandButton}
-              onPress={() => setExpanded(!expanded)}
-            >
-              <Text style={themeStyles.expandButtonText}>
-                {expanded ? "Show Less" : `Show All (${allFeedback.length})`}
-              </Text>
-              <MaterialIcons 
-                name={expanded ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
-                size={24} 
-                color="#870D25" 
-              />
-            </TouchableOpacity>
-          )}
-        </>
+        <FlatList
+          data={reportedUsers}
+          renderItem={renderItem}
+          keyExtractor={(item, index) =>
+            item.reportedUserId
+              ? item.reportedUserId.toString()
+              : index.toString()
+          }
+          contentContainerStyle={styles.list}
+        />
       )}
-    </View>
+    </SafeAreaView>
   );
-}
+};
 
-const getStyles = (isDarkMode) => StyleSheet.create({
+export default UserReportsScreen;
+
+const styles = StyleSheet.create({
   container: {
-    backgroundColor: isDarkMode ? '#121212' : 'white',
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 20,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    flex: 1,
+    backgroundColor: "#f9fafb", // Light background
+    padding: 20,
+  },
+  containerDark: {
+    backgroundColor: "#121212", // Dark background for dark mode
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: isDarkMode ? '#1F2937' : '#FFF',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: isDarkMode ? '#333' : '#F1F5F9',
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 20,
+    color: "#1f2937", // Dark text for light mode
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: isDarkMode ? '#F9FAFB' : '#111',
+  headerDark: {
+    color: "#ffffff", // Light text for dark mode
   },
-  refreshButton: {
-    padding: 8,
+  card: {
+    backgroundColor: "#fff", // Light card background
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: isDarkMode ? '#2A2A2A' : '#F1F5F9',
-    marginHorizontal: 20,
-    marginVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+  cardDark: {
+    backgroundColor: "#1e1e1e", // Dark card background for dark mode
   },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    fontSize: 14,
-    color: isDarkMode ? '#E0E0E0' : '#333',
-  },
-  listContainer: {
-    paddingHorizontal: 20,
-  },
-  feedbackItem: {
-    paddingVertical: 12,
-  },
-  feedbackHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  reportHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
-  userContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  userInitial: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#870D25',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  initialText: {
-    color: 'white',
+  email: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "600",
+    color: "#1d4ed8", // Light blue for emails in light mode
+    flex: 1,
   },
-  user: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    color: isDarkMode ? '#E5E5E5' : '#333',
+  emailDark: {
+    color: "#bb86fc", // Light purple for emails in dark mode
   },
-  date: {
+  badgeContainer: {
+    marginLeft: 8,
+  },
+  reporterBadge: {
+    backgroundColor: "#ef4444", // Red badge for reports in light mode
+    color: "#fff",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
     fontSize: 12,
-    color: isDarkMode ? '#9CA3AF' : '#94A3B8',
+    fontWeight: "500",
   },
-  ratingContainer: {
-    flexDirection: 'row',
+  reporterBadgeDark: {
+    backgroundColor: "#FF6B81", // Light red badge for dark mode
   },
-  star: {
-    marginLeft: 2,
-  },
-  message: {
-    color: isDarkMode ? '#CCCCCC' : '#4B5563',
+  userId: {
     fontSize: 14,
-    lineHeight: 20,
-    marginLeft: 46,
+    color: "#6b7280", // Grey text for user ID in light mode
+    marginBottom: 12,
   },
-  separator: {
-    height: 1,
-    backgroundColor: isDarkMode ? '#333' : '#F1F5F9',
-    marginVertical: 8,
+  userIdDark: {
+    color: "#bbb", // Light grey text for user ID in dark mode
   },
-  expandButton: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: isDarkMode ? '#2E2E2E' : '#F1F5F9',
+  reasonContainer: {
+    backgroundColor: "#f3f4f6", // Light background for reason in light mode
+    borderRadius: 8,
+    padding: 10,
   },
-  expandButtonText: {
-    color: '#870D25',
-    fontWeight: '600',
-    marginRight: 4,
+  reasonLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151", // Dark text for reason label in light mode
+    marginBottom: 4,
   },
-  loadingContainer: {
-    padding: 40,
-    alignItems: 'center',
+  reasonLabelDark: {
+    color: "#e0e0e0", // Light text for reason label in dark mode
   },
-  loadingText: {
-    marginTop: 12,
-    color: isDarkMode ? '#CCCCCC' : '#666',
+  reasonText: {
+    fontSize: 14,
+    color: "#4b5563", // Dark text for reason in light mode
   },
-  emptyContainer: {
-    padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+  reasonTextDark: {
+    color: "#e0e0e0", // Light text for reason in dark mode
   },
-  emptyText: {
-    marginTop: 12,
-    color: isDarkMode ? '#9CA3AF' : '#94A3B8',
-    textAlign: 'center',
-  }
+  empty: {
+    fontSize: 16,
+    color: "#9ca3af", // Grey text for empty state in light mode
+    marginTop: 20,
+    textAlign: "center",
+  },
+  emptyDark: {
+    color: "#bb86fc", // Light text for empty state in dark mode
+  },
+  list: {
+    paddingBottom: 20,
+  },
 });
